@@ -1,0 +1,65 @@
+real r =4;
+real xlow=-r,xhigh=r;
+real ylow=-r,yhigh=r;
+
+//square mesh
+int res = 100;
+int n=res, m=res;
+mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);
+
+//alternative: circular mesh
+//border Gamma(t=0,2*pi) { x = r * cos(t); y = r * sin(t); }
+//mesh Th = buildmesh(Gamma(res));
+
+//def. S and func.s of S
+real s11=1., s12=0.;
+real s21=0., s22=1.;
+real lapl = 2;
+func v1 = s11*x+s12*y;
+func v2 = s21*x+s22*y;
+
+varf a(p, q) = - int2d(Th)(dx(p)*dx(q)+dy(p)*dy(q))		 //diffusion
+     	      	       + int2d(Th)((v1*dx(p)+v2*dy(p))*q)   	 //advection
+	      	       + int2d(Th)(lapl*p*q)			 //reaction
+//		       - int1d(Th,1,2,3,4)(p*q*(v1*N.x+v2*N.y)); //Robin BC
+		       + on(1,2,3,4, p=0);			 //Dirichlet BD
+
+
+/*
+//non-constrained problem
+fespace Vh1(Th,P1);   
+Vh1 uh1, vh1;
+problem FP(uh1,vh1) = a;
+FP;
+plot(uh1, fill=1, value=1, dim=3);
+*/
+
+// integral constraint on soution
+
+//varf for integral constraint
+varf varG(p,q) = int2d(Th)(q);
+
+//*** P1 elements:
+fespace Xh1(Th,P1);
+Xh1 ph1;
+
+//assembling matrix
+real[int] g = varG(0,Xh1);
+matrix A = a(Xh1, Xh1);
+matrix M =[[A, g],
+       	   [g', 0]];
+
+//assembling rhs
+real[int] rhs(Xh1.ndof+1);
+rhs=0.;
+rhs[Xh1.ndof] = 1.;
+
+//solving
+set(M,solver=UMFPACK);
+real[int] sol = M^-1*rhs;
+real[int] ph = sol(0:Xh1.ndof-1);
+
+//plotting
+ph1[] = ph;
+plot(Th,wait=1);
+plot(Th, ph1,fill=1,wait=1,value=1, dim=3);

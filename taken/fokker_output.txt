@@ -1,0 +1,3521 @@
+-- FreeFem++ v  3.310001 (date Jeu 10 jul 2014 21:47:51 CEST)
+ Load: lg_fem lg_mesh lg_mesh3 eigenvalue 
+    1 : //  fokker.edp
+    2 : //
+    3 : //  Discussion:
+    4 : //
+    5 : //    Fokker-Planck equations.
+    6 : //    Simple stochastic metabolite reaction model
+    7 : //
+    8 : //  Modified:
+    9 : //
+   10 : //    20 May 2015
+   11 : //
+   12 : //  Author:
+   13 : //
+   14 : //    Florian De Vuyst
+   15 : //
+   16 : //  Reference:
+   17 : //
+   18 : //    Numerical modeling of transport problems using freefem++ software -
+   19 : //    with examples in biology, CFD, traffic flow and energy transfer,
+   20 : //    HAL id: cel-00842234
+   21 : //    https://cel.archives-ouvertes.fr/cel-00842234
+   22 : //
+   23 : real kx = 0.6;
+   24 : real ky = kx;
+   25 : real mu = 0.001;
+   26 : real k2 = 0.001;
+   27 : real dt = 0.1;
+   28 : //
+   29 : //  Define the mesh.
+   30 : //
+   31 : real Lx = 200;
+   32 : real Ly = 200;
+   33 : mesh Th = square(60, 60, [x*Lx, y*Ly]);
+   34 : //
+   35 : //  Define the finite element space.
+   36 : //
+   37 : fespace Vh(Th, P2); 
+   38 : fespace Wh(Th,P1);
+   39 : Vh p, qh, pold;
+   40 : Wh v1h, v2h;
+   41 : 
+   42 : func a11 = kx + mu*x+k2 * x*y;
+   43 : func a12 = k2*x*y;
+   44 : func a21 = k2*x*y;
+   45 : func a22 = ky+mu*y+k2 * x*y;
+   46 : func v1 = (kx-mu*x-k2*x*y) - 0.5 * (mu+k2*y +k2*x);
+   47 : func v2 = (ky-mu*y-k2*x*y) - 0.5 * (k2*y +mu+k2*x);
+   48 : func dxv1 = - mu - k2*y - 0.5 * k2;
+   49 : func dyv2 = - mu - k2*x -0.5 * k2;
+   50 : //
+   51 : v1h=v1;
+   52 : v2h=v2;
+   53 : plot([v1h, v2h], ps="fokker_velocity.ps");
+   54 : //
+   55 : // Set the initial PDF
+   56 : //
+   57 : real sigma = 5;
+   58 : real sigma2=sigma^2;
+   59 : p = exp(-0.5*(x-140)^2/sigma2) * exp(-0.5*(y-160)^2/sigma2);
+   60 : Th = adaptmesh ( Th, p );
+   61 : p = p;
+   62 : real massp = int2d(Th) (p);
+   63 : p = p / massp;
+   64 : pold = p;
+   65 : plot ( p, nbiso=60, ps="fokker_p_initial.ps" );
+   66 : plot ( p, Th, nbiso=60, ps="fokker_p_initial_mesh.ps");
+   67 : //
+   68 : //  Define the weak formulation.
+   69 : //
+   70 : problem fokker(p, qh) =
+   71 :   int2d (Th) (p*qh/dt)
+   72 : - int2d (Th) (convect([v1, v2], -dt, pold)*qh/dt)
+   73 : + int2d (Th) (0.5*a11*dx(p)*dx(qh)+0.5*a22*dy(p)*dy(qh))
+   74 : + int2d (Th) (0.5*a12*dy(p)*dx(qh)+0.5*a21*dx(p)*dy(qh))
+   75 : - int1d (Th, 1,2,3,4) ((v1*N.x+v2*N.y)*p*qh)
+   76 : + int2d (Th) ( (dxv1+dyv2)*p*qh );
+   77 : //
+   78 : int it;
+   79 : for ( it = 0; it < 200; it++ )
+   80 : {
+   81 :   for ( int subit = 0; subit < 5; subit++ )
+   82 :   {
+   83 :     fokker; 
+   84 :     massp = int2d(Th) (p); 
+   85 :     p = p /massp; 
+   86 :     pold = p;
+   87 :   }
+   88 : 
+   89 :   Th = adaptmesh ( Th, p );
+   90 :   massp = int2d(Th) (p);
+   91 :   p = p / massp;
+   92 :   pold = p;
+   93 :   plot ( p, Th, nbiso=60 );
+   94 :   cout << "  Mass = " << int2d(Th)(p) << endl;
+   95 : }
+   96 : plot ( p, nbiso=40, ps="fokker_p_final.ps");
+   97 : plot ( p, Th, nbiso=40, ps="fokker_p_final_mesh"+it+".ps");
+   98 : //
+   99 : //  Terminate.
+  100 : //
+  101 : cout << "\n";
+  102 : cout << "FOKKER:\n";
+  103 : cout << "  Normal end of execution.\n";
+  104 :  sizestack + 1024 =13960  ( 12936 )
+
+  -- Square mesh : nb vertices  =3721 ,  nb triangles = 7200 ,  nb boundary edges 240
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1498 , h  min 0.443969 , h max 86.0933
+     area =  40000 , M area = 651.94 , M area/( |Khat| nt) 1.00507
+     infiny-regulaty:  min 0.309764  max 2.11307
+     anisomax  5.60423, beta max = 1.26676 min  0.761901
+  --  mesh:  Nb of Triangles =   1498, Nb of Vertices 761
+  -- Solve : 
+          min -3.14669e-08  max 0.00602529
+  -- Solve : 
+          min -4.08141e-08  max 0.00577177
+  -- Solve : 
+          min -4.09617e-07  max 0.00554789
+  -- Solve : 
+          min -8.0133e-07  max 0.00538199
+  -- Solve : 
+          min -1.82655e-06  max 0.00521092
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1498 , h  min 0.409693 , h max 80.0202
+     area =  40000 , M area = 672.6 , M area/( |Khat| nt) 1.03692
+     infiny-regulaty:  min 0.310219  max 2.3804
+     anisomax  4.4967, beta max = 1.31839 min  0.752785
+  --  mesh:  Nb of Triangles =   1498, Nb of Vertices 759
+  Mass = 1.00001
+  -- Solve : 
+          min -1.08255e-06  max 0.0051064
+  -- Solve : 
+          min -5.68986e-07  max 0.004992
+  -- Solve : 
+          min -1.63399e-06  max 0.00488889
+  -- Solve : 
+          min -3.98872e-06  max 0.00480176
+  -- Solve : 
+          min -7.625e-06  max 0.00472824
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1559 , h  min 0.397025 , h max 82.3851
+     area =  40000 , M area = 683.433 , M area/( |Khat| nt) 1.01239
+     infiny-regulaty:  min 0.288099  max 2.25533
+     anisomax  5.46436, beta max = 1.4917 min  0.747811
+  --  mesh:  Nb of Triangles =   1559, Nb of Vertices 788
+  Mass = 1.00003
+  -- Solve : 
+          min -9.32858e-06  max 0.00466766
+  -- Solve : 
+          min -5.2824e-06  max 0.00460921
+  -- Solve : 
+          min -5.33674e-06  max 0.00455183
+  -- Solve : 
+          min -4.29589e-06  max 0.00450074
+  -- Solve : 
+          min -2.82865e-06  max 0.00446363
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1599 , h  min 0.418291 , h max 76.1037
+     area =  40000 , M area = 702.485 , M area/( |Khat| nt) 1.01458
+     infiny-regulaty:  min 0.331416  max 2.31065
+     anisomax  7.35198, beta max = 1.38108 min  0.749301
+  --  mesh:  Nb of Triangles =   1599, Nb of Vertices 808
+  Mass = 1.00001
+  -- Solve : 
+          min -1.05086e-06  max 0.00442906
+  -- Solve : 
+          min -1.09285e-06  max 0.00439571
+  -- Solve : 
+          min -1.28192e-06  max 0.00436536
+  -- Solve : 
+          min -2.07301e-06  max 0.0043354
+  -- Solve : 
+          min -3.78165e-06  max 0.00431337
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1648 , h  min 0.417104 , h max 72.1764
+     area =  40000 , M area = 726.365 , M area/( |Khat| nt) 1.01788
+     infiny-regulaty:  min 0.361786  max 2.37288
+     anisomax  6.85651, beta max = 1.28109 min  0.704909
+  --  mesh:  Nb of Triangles =   1648, Nb of Vertices 833
+  Mass = 0.999977
+  -- Solve : 
+          min -3.51306e-06  max 0.00429463
+  -- Solve : 
+          min -3.26555e-06  max 0.00427457
+  -- Solve : 
+          min -2.5543e-06  max 0.00425885
+  -- Solve : 
+          min -1.79227e-06  max 0.0042418
+  -- Solve : 
+          min -1.5683e-06  max 0.00422898
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1653 , h  min 0.395234 , h max 70.8232
+     area =  40000 , M area = 735.081 , M area/( |Khat| nt) 1.02698
+     infiny-regulaty:  min 0.350403  max 2.50476
+     anisomax  5.31256, beta max = 1.28099 min  0.734262
+  --  mesh:  Nb of Triangles =   1653, Nb of Vertices 836
+  Mass = 1.00008
+  -- Solve : 
+          min -1.04669e-06  max 0.00421797
+  -- Solve : 
+          min -1.22876e-06  max 0.00420645
+  -- Solve : 
+          min -1.20267e-06  max 0.00419736
+  -- Solve : 
+          min -1.40366e-06  max 0.00418636
+  -- Solve : 
+          min -2.1599e-06  max 0.00418127
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1624 , h  min 0.429646 , h max 72.3148
+     area =  40000 , M area = 734.146 , M area/( |Khat| nt) 1.04399
+     infiny-regulaty:  min 0.297776  max 2.49175
+     anisomax  6.99027, beta max = 1.52292 min  0.713708
+  --  mesh:  Nb of Triangles =   1624, Nb of Vertices 820
+  Mass = 1.00007
+  -- Solve : 
+          min -1.06951e-06  max 0.00417434
+  -- Solve : 
+          min -9.23993e-07  max 0.00416995
+  -- Solve : 
+          min -8.78307e-07  max 0.00416428
+  -- Solve : 
+          min -8.14739e-07  max 0.00416026
+  -- Solve : 
+          min -7.9879e-07  max 0.00415868
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1657 , h  min 0.415185 , h max 71.0238
+     area =  40000 , M area = 743.974 , M area/( |Khat| nt) 1.03689
+     infiny-regulaty:  min 0.3493  max 2.19275
+     anisomax  6.76048, beta max = 1.41446 min  0.758656
+  --  mesh:  Nb of Triangles =   1657, Nb of Vertices 837
+  Mass = 1.00004
+  -- Solve : 
+          min -6.72333e-07  max 0.00415629
+  -- Solve : 
+          min -5.72873e-07  max 0.00415457
+  -- Solve : 
+          min -5.29577e-07  max 0.004153
+  -- Solve : 
+          min -4.90576e-07  max 0.00415113
+  -- Solve : 
+          min -5.19013e-07  max 0.00415015
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1687 , h  min 0.449723 , h max 67.4449
+     area =  40000 , M area = 745.72 , M area/( |Khat| nt) 1.02085
+     infiny-regulaty:  min 0.356697  max 2.24901
+     anisomax  7.60262, beta max = 1.4003 min  0.739969
+  --  mesh:  Nb of Triangles =   1687, Nb of Vertices 853
+  Mass = 1.00001
+  -- Solve : 
+          min -3.70284e-07  max 0.00415257
+  -- Solve : 
+          min -3.76523e-07  max 0.00415242
+  -- Solve : 
+          min -3.70885e-07  max 0.00415362
+  -- Solve : 
+          min -3.62855e-07  max 0.0041541
+  -- Solve : 
+          min -3.99523e-07  max 0.00415718
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1650 , h  min 0.462699 , h max 71.4453
+     area =  40000 , M area = 740.125 , M area/( |Khat| nt) 1.03591
+     infiny-regulaty:  min 0.365138  max 2.39206
+     anisomax  6.22014, beta max = 1.32707 min  0.69653
+  --  mesh:  Nb of Triangles =   1650, Nb of Vertices 834
+  Mass = 1.00007
+  -- Solve : 
+          min -3.55877e-07  max 0.00415919
+  -- Solve : 
+          min -3.79128e-07  max 0.00416005
+  -- Solve : 
+          min -3.95474e-07  max 0.00416337
+  -- Solve : 
+          min -4.06025e-07  max 0.00416469
+  -- Solve : 
+          min -4.11715e-07  max 0.00416925
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1696 , h  min 0.401762 , h max 72.4733
+     area =  40000 , M area = 749.889 , M area/( |Khat| nt) 1.02111
+     infiny-regulaty:  min 0.350527  max 2.27174
+     anisomax  6.18655, beta max = 1.33628 min  0.736511
+  --  mesh:  Nb of Triangles =   1696, Nb of Vertices 858
+  Mass = 1.00003
+  -- Solve : 
+          min -7.89619e-07  max 0.00417278
+  -- Solve : 
+          min -6.69997e-07  max 0.00417429
+  -- Solve : 
+          min -5.39223e-07  max 0.00417883
+  -- Solve : 
+          min -4.55409e-07  max 0.00418214
+  -- Solve : 
+          min -4.52024e-07  max 0.00418572
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1647 , h  min 0.490823 , h max 73.6341
+     area =  40000 , M area = 745.242 , M area/( |Khat| nt) 1.04497
+     infiny-regulaty:  min 0.3611  max 2.37382
+     anisomax  7.85152, beta max = 1.36781 min  0.744061
+  --  mesh:  Nb of Triangles =   1647, Nb of Vertices 832
+  Mass = 1.00007
+  -- Solve : 
+          min -1.12799e-06  max 0.00419191
+  -- Solve : 
+          min -1.07492e-06  max 0.00419445
+  -- Solve : 
+          min -9.39167e-07  max 0.00419961
+  -- Solve : 
+          min -7.34707e-07  max 0.00420281
+  -- Solve : 
+          min -7.39977e-07  max 0.00420952
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1639 , h  min 0.466254 , h max 68.9876
+     area =  40000 , M area = 738.091 , M area/( |Khat| nt) 1.03999
+     infiny-regulaty:  min 0.307442  max 2.23597
+     anisomax  8.97922, beta max = 1.28313 min  0.745834
+  --  mesh:  Nb of Triangles =   1639, Nb of Vertices 828
+  Mass = 1.00005
+  -- Solve : 
+          min -5.73906e-07  max 0.00421333
+  -- Solve : 
+          min -5.32331e-07  max 0.00421809
+  -- Solve : 
+          min -5.51933e-07  max 0.00422305
+  -- Solve : 
+          min -5.15152e-07  max 0.00422691
+  -- Solve : 
+          min -4.33269e-07  max 0.00423412
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1661 , h  min 0.440141 , h max 67.9452
+     area =  40000 , M area = 741.166 , M area/( |Khat| nt) 1.03049
+     infiny-regulaty:  min 0.27837  max 2.28172
+     anisomax  7.12223, beta max = 1.50297 min  0.772373
+  --  mesh:  Nb of Triangles =   1661, Nb of Vertices 839
+  Mass = 1.00001
+  -- Solve : 
+          min -5.97685e-07  max 0.00423959
+  -- Solve : 
+          min -4.35545e-07  max 0.00424461
+  -- Solve : 
+          min -4.45953e-07  max 0.00425012
+  -- Solve : 
+          min -5.13553e-07  max 0.00425503
+  -- Solve : 
+          min -5.74238e-07  max 0.00425858
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1716 , h  min 0.423468 , h max 68.2063
+     area =  40000 , M area = 740.569 , M area/( |Khat| nt) 0.996661
+     infiny-regulaty:  min 0.314505  max 2.40326
+     anisomax  6.33807, beta max = 1.4251 min  0.731145
+  --  mesh:  Nb of Triangles =   1716, Nb of Vertices 867
+  Mass = 1.00004
+  -- Solve : 
+          min -5.42974e-07  max 0.0042661
+  -- Solve : 
+          min -5.67628e-07  max 0.00427085
+  -- Solve : 
+          min -5.9169e-07  max 0.00427632
+  -- Solve : 
+          min -6.14583e-07  max 0.00428239
+  -- Solve : 
+          min -6.35678e-07  max 0.00428901
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1692 , h  min 0.441494 , h max 68.7742
+     area =  40000 , M area = 742.391 , M area/( |Khat| nt) 1.01329
+     infiny-regulaty:  min 0.334917  max 2.48535
+     anisomax  8.26466, beta max = 1.36646 min  0.709489
+  --  mesh:  Nb of Triangles =   1692, Nb of Vertices 855
+  Mass = 1.00003
+  -- Solve : 
+          min -4.80554e-07  max 0.00429491
+  -- Solve : 
+          min -4.83297e-07  max 0.00429968
+  -- Solve : 
+          min -4.84358e-07  max 0.00430596
+  -- Solve : 
+          min -5.11781e-07  max 0.00431126
+  -- Solve : 
+          min -5.28493e-07  max 0.0043161
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1657 , h  min 0.446874 , h max 63.6603
+     area =  40000 , M area = 738.596 , M area/( |Khat| nt) 1.0294
+     infiny-regulaty:  min 0.248085  max 2.46545
+     anisomax  6.28687, beta max = 1.35545 min  0.734198
+  --  mesh:  Nb of Triangles =   1657, Nb of Vertices 838
+  Mass = 1.00004
+  -- Solve : 
+          min -3.97523e-07  max 0.00432378
+  -- Solve : 
+          min -3.9644e-07  max 0.00432778
+  -- Solve : 
+          min -3.9589e-07  max 0.0043351
+  -- Solve : 
+          min -3.96032e-07  max 0.00433947
+  -- Solve : 
+          min -3.96693e-07  max 0.00434697
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1671 , h  min 0.506983 , h max 71.4889
+     area =  40000 , M area = 744.73 , M area/( |Khat| nt) 1.02925
+     infiny-regulaty:  min 0.353349  max 2.32144
+     anisomax  7.09978, beta max = 1.30039 min  0.72924
+  --  mesh:  Nb of Triangles =   1671, Nb of Vertices 844
+  Mass = 1.00001
+  -- Solve : 
+          min -8.94137e-07  max 0.00435151
+  -- Solve : 
+          min -5.55128e-07  max 0.00435841
+  -- Solve : 
+          min -4.37555e-07  max 0.00436404
+  -- Solve : 
+          min -4.272e-07  max 0.00436893
+  -- Solve : 
+          min -4.26553e-07  max 0.00437573
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1616 , h  min 0.500833 , h max 73.1594
+     area =  40000 , M area = 743.639 , M area/( |Khat| nt) 1.06272
+     infiny-regulaty:  min 0.332452  max 2.52822
+     anisomax  6.8349, beta max = 1.43154 min  0.721506
+  --  mesh:  Nb of Triangles =   1616, Nb of Vertices 817
+  Mass = 1.00002
+  -- Solve : 
+          min -5.45749e-07  max 0.00438186
+  -- Solve : 
+          min -5.40841e-07  max 0.00438576
+  -- Solve : 
+          min -5.63882e-07  max 0.00439342
+  -- Solve : 
+          min -6.43994e-07  max 0.00439951
+  -- Solve : 
+          min -6.86536e-07  max 0.00440447
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1645 , h  min 0.47043 , h max 63.456
+     area =  40000 , M area = 742.745 , M area/( |Khat| nt) 1.04273
+     infiny-regulaty:  min 0.398742  max 2.618
+     anisomax  6.5653, beta max = 1.30788 min  0.673143
+  --  mesh:  Nb of Triangles =   1645, Nb of Vertices 832
+  Mass = 1.00001
+  -- Solve : 
+          min -5.63222e-07  max 0.00440991
+  -- Solve : 
+          min -5.20721e-07  max 0.00441721
+  -- Solve : 
+          min -5.10564e-07  max 0.00442288
+  -- Solve : 
+          min -4.99661e-07  max 0.00442759
+  -- Solve : 
+          min -5.16104e-07  max 0.00443452
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1645 , h  min 0.486092 , h max 74.3115
+     area =  40000 , M area = 741.905 , M area/( |Khat| nt) 1.04155
+     infiny-regulaty:  min 0.365225  max 2.39139
+     anisomax  5.72567, beta max = 1.45348 min  0.717707
+  --  mesh:  Nb of Triangles =   1645, Nb of Vertices 832
+  Mass = 1.00004
+  -- Solve : 
+          min -6.01585e-07  max 0.00443983
+  -- Solve : 
+          min -5.56569e-07  max 0.00444606
+  -- Solve : 
+          min -4.98726e-07  max 0.00445072
+  -- Solve : 
+          min -5.04346e-07  max 0.00445672
+  -- Solve : 
+          min -5.16255e-07  max 0.00446288
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1610 , h  min 0.476891 , h max 74.8169
+     area =  40000 , M area = 738.977 , M area/( |Khat| nt) 1.06
+     infiny-regulaty:  min 0.347651  max 2.18846
+     anisomax  7.33246, beta max = 1.34765 min  0.737738
+  --  mesh:  Nb of Triangles =   1610, Nb of Vertices 814
+  Mass = 1.00002
+  -- Solve : 
+          min -4.87692e-07  max 0.00446867
+  -- Solve : 
+          min -4.98203e-07  max 0.00447276
+  -- Solve : 
+          min -5.07421e-07  max 0.00447877
+  -- Solve : 
+          min -5.14836e-07  max 0.00448367
+  -- Solve : 
+          min -5.19969e-07  max 0.00448992
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1625 , h  min 0.490502 , h max 75.4547
+     area =  40000 , M area = 736.21 , M area/( |Khat| nt) 1.04628
+     infiny-regulaty:  min 0.371079  max 2.398
+     anisomax  5.56748, beta max = 1.3627 min  0.724364
+  --  mesh:  Nb of Triangles =   1625, Nb of Vertices 821
+  Mass = 1.00002
+  -- Solve : 
+          min -4.99229e-07  max 0.00449705
+  -- Solve : 
+          min -5.08536e-07  max 0.00450204
+  -- Solve : 
+          min -5.15012e-07  max 0.00450681
+  -- Solve : 
+          min -5.19072e-07  max 0.0045133
+  -- Solve : 
+          min -5.21037e-07  max 0.00451856
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1613 , h  min 0.444541 , h max 74.2637
+     area =  40000 , M area = 736.732 , M area/( |Khat| nt) 1.05481
+     infiny-regulaty:  min 0.382824  max 2.52646
+     anisomax  6.56392, beta max = 1.33849 min  0.676895
+  --  mesh:  Nb of Triangles =   1613, Nb of Vertices 815
+  Mass = 1.00001
+  -- Solve : 
+          min -6.14016e-07  max 0.00452368
+  -- Solve : 
+          min -5.35856e-07  max 0.00452879
+  -- Solve : 
+          min -5.37564e-07  max 0.00453414
+  -- Solve : 
+          min -5.37323e-07  max 0.00454018
+  -- Solve : 
+          min -5.35286e-07  max 0.00454588
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1610 , h  min 0.475933 , h max 75.3007
+     area =  40000 , M area = 736.398 , M area/( |Khat| nt) 1.0563
+     infiny-regulaty:  min 0.268134  max 2.19167
+     anisomax  8.47994, beta max = 1.3874 min  0.739319
+  --  mesh:  Nb of Triangles =   1610, Nb of Vertices 814
+  Mass = 1.00003
+  -- Solve : 
+          min -6.49694e-07  max 0.00455158
+  -- Solve : 
+          min -6.2645e-07  max 0.00455637
+  -- Solve : 
+          min -6.06318e-07  max 0.00456155
+  -- Solve : 
+          min -5.88956e-07  max 0.00456584
+  -- Solve : 
+          min -5.74421e-07  max 0.00457136
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1618 , h  min 0.46145 , h max 73.5402
+     area =  40000 , M area = 740.963 , M area/( |Khat| nt) 1.05759
+     infiny-regulaty:  min 0.369446  max 2.50018
+     anisomax  5.90205, beta max = 1.29408 min  0.68918
+  --  mesh:  Nb of Triangles =   1618, Nb of Vertices 818
+  Mass = 1.00002
+  -- Solve : 
+          min -5.5088e-07  max 0.00457764
+  -- Solve : 
+          min -5.33561e-07  max 0.00458269
+  -- Solve : 
+          min -5.20827e-07  max 0.00458698
+  -- Solve : 
+          min -5.1157e-07  max 0.00459082
+  -- Solve : 
+          min -5.05322e-07  max 0.00459762
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1620 , h  min 0.46562 , h max 73.6038
+     area =  40000 , M area = 738.666 , M area/( |Khat| nt) 1.05301
+     infiny-regulaty:  min 0.386422  max 2.83168
+     anisomax  5.63005, beta max = 1.37871 min  0.685968
+  --  mesh:  Nb of Triangles =   1620, Nb of Vertices 819
+  Mass = 1.00003
+  -- Solve : 
+          min -5.00907e-07  max 0.00460085
+  -- Solve : 
+          min -4.93178e-07  max 0.00460674
+  -- Solve : 
+          min -4.84275e-07  max 0.0046125
+  -- Solve : 
+          min -4.74324e-07  max 0.004616
+  -- Solve : 
+          min -4.70456e-07  max 0.00462254
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1622 , h  min 0.401549 , h max 73.5997
+     area =  40000 , M area = 739.655 , M area/( |Khat| nt) 1.05312
+     infiny-regulaty:  min 0.330781  max 2.08526
+     anisomax  6.77901, beta max = 1.44959 min  0.731051
+  --  mesh:  Nb of Triangles =   1622, Nb of Vertices 820
+  Mass = 1.00001
+  -- Solve : 
+          min -4.63903e-07  max 0.00462765
+  -- Solve : 
+          min -4.608e-07  max 0.00463117
+  -- Solve : 
+          min -4.64064e-07  max 0.00463724
+  -- Solve : 
+          min -4.71758e-07  max 0.00464092
+  -- Solve : 
+          min -4.82499e-07  max 0.00464616
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1587 , h  min 0.418482 , h max 69.5583
+     area =  40000 , M area = 739.283 , M area/( |Khat| nt) 1.0758
+     infiny-regulaty:  min 0.351923  max 2.30878
+     anisomax  6.68405, beta max = 1.34774 min  0.758614
+  --  mesh:  Nb of Triangles =   1587, Nb of Vertices 803
+  Mass = 1.00002
+  -- Solve : 
+          min -4.37109e-07  max 0.00465075
+  -- Solve : 
+          min -4.18458e-07  max 0.00465596
+  -- Solve : 
+          min -4.12281e-07  max 0.00466024
+  -- Solve : 
+          min -4.4291e-07  max 0.00466514
+  -- Solve : 
+          min -4.75698e-07  max 0.00466826
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1565 , h  min 0.463263 , h max 67.9628
+     area =  40000 , M area = 733.659 , M area/( |Khat| nt) 1.08263
+     infiny-regulaty:  min 0.315686  max 2.60035
+     anisomax  6.96343, beta max = 1.47954 min  0.727528
+  --  mesh:  Nb of Triangles =   1565, Nb of Vertices 792
+  Mass = 1.00004
+  -- Solve : 
+          min -5.38829e-07  max 0.00467389
+  -- Solve : 
+          min -5.26867e-07  max 0.00467949
+  -- Solve : 
+          min -5.14462e-07  max 0.0046835
+  -- Solve : 
+          min -5.01897e-07  max 0.0046877
+  -- Solve : 
+          min -4.89412e-07  max 0.00469255
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1606 , h  min 0.463886 , h max 73.2244
+     area =  40000 , M area = 733.816 , M area/( |Khat| nt) 1.05521
+     infiny-regulaty:  min 0.339246  max 2.31828
+     anisomax  6.81273, beta max = 1.2768 min  0.716518
+  --  mesh:  Nb of Triangles =   1606, Nb of Vertices 812
+  Mass = 1.00003
+  -- Solve : 
+          min -5.75438e-07  max 0.00469543
+  -- Solve : 
+          min -5.71245e-07  max 0.0047008
+  -- Solve : 
+          min -5.68193e-07  max 0.00470527
+  -- Solve : 
+          min -5.66112e-07  max 0.00470905
+  -- Solve : 
+          min -5.64902e-07  max 0.00471469
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1574 , h  min 0.464973 , h max 73.2909
+     area =  40000 , M area = 737.291 , M area/( |Khat| nt) 1.08177
+     infiny-regulaty:  min 0.342475  max 2.16025
+     anisomax  6.36031, beta max = 1.3056 min  0.723167
+  --  mesh:  Nb of Triangles =   1574, Nb of Vertices 797
+  Mass = 1.00002
+  -- Solve : 
+          min -5.67281e-07  max 0.00471801
+  -- Solve : 
+          min -5.63148e-07  max 0.00472286
+  -- Solve : 
+          min -5.60531e-07  max 0.0047272
+  -- Solve : 
+          min -5.5929e-07  max 0.00473107
+  -- Solve : 
+          min -5.59288e-07  max 0.00473464
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1604 , h  min 0.469087 , h max 74.4841
+     area =  40000 , M area = 735.625 , M area/( |Khat| nt) 1.05914
+     infiny-regulaty:  min 0.349711  max 2.20119
+     anisomax  6.96177, beta max = 1.3737 min  0.694483
+  --  mesh:  Nb of Triangles =   1604, Nb of Vertices 811
+  Mass = 1.00003
+  -- Solve : 
+          min -5.47547e-07  max 0.00473851
+  -- Solve : 
+          min -5.45564e-07  max 0.00474429
+  -- Solve : 
+          min -5.4446e-07  max 0.00474696
+  -- Solve : 
+          min -5.44192e-07  max 0.00475091
+  -- Solve : 
+          min -5.4468e-07  max 0.00475503
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1583 , h  min 0.471401 , h max 76.3444
+     area =  40000 , M area = 741.624 , M area/( |Khat| nt) 1.08194
+     infiny-regulaty:  min 0.358013  max 2.29729
+     anisomax  5.95067, beta max = 1.33245 min  0.70365
+  --  mesh:  Nb of Triangles =   1583, Nb of Vertices 801
+  Mass = 1.00001
+  -- Solve : 
+          min -6.81847e-07  max 0.00476033
+  -- Solve : 
+          min -6.6483e-07  max 0.00476254
+  -- Solve : 
+          min -6.47444e-07  max 0.00476809
+  -- Solve : 
+          min -6.29557e-07  max 0.00477129
+  -- Solve : 
+          min -6.11121e-07  max 0.00477488
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1587 , h  min 0.42824 , h max 74.9913
+     area =  40000 , M area = 736.927 , M area/( |Khat| nt) 1.07238
+     infiny-regulaty:  min 0.391997  max 2.37172
+     anisomax  7.73808, beta max = 1.36909 min  0.736873
+  --  mesh:  Nb of Triangles =   1587, Nb of Vertices 803
+  Mass = 1.00001
+  -- Solve : 
+          min -6.57355e-07  max 0.00477844
+  -- Solve : 
+          min -6.52026e-07  max 0.00478369
+  -- Solve : 
+          min -6.45694e-07  max 0.00478685
+  -- Solve : 
+          min -6.38393e-07  max 0.00479031
+  -- Solve : 
+          min -6.30169e-07  max 0.00479386
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1587 , h  min 0.439193 , h max 73.5285
+     area =  40000 , M area = 736.08 , M area/( |Khat| nt) 1.07114
+     infiny-regulaty:  min 0.369178  max 2.31821
+     anisomax  6.70282, beta max = 1.36419 min  0.717284
+  --  mesh:  Nb of Triangles =   1587, Nb of Vertices 803
+  Mass = 1.00001
+  -- Solve : 
+          min -5.9708e-07  max 0.00479739
+  -- Solve : 
+          min -5.88094e-07  max 0.00480227
+  -- Solve : 
+          min -5.78378e-07  max 0.00480441
+  -- Solve : 
+          min -5.83548e-07  max 0.00480952
+  -- Solve : 
+          min -5.94571e-07  max 0.00481227
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1600 , h  min 0.438122 , h max 75.7232
+     area =  40000 , M area = 737.555 , M area/( |Khat| nt) 1.06457
+     infiny-regulaty:  min 0.327447  max 2.28079
+     anisomax  7.09678, beta max = 1.3904 min  0.716526
+  --  mesh:  Nb of Triangles =   1600, Nb of Vertices 810
+  Mass = 1.00003
+  -- Solve : 
+          min -5.83753e-07  max 0.00481658
+  -- Solve : 
+          min -5.94984e-07  max 0.0048195
+  -- Solve : 
+          min -6.06147e-07  max 0.00482184
+  -- Solve : 
+          min -6.17093e-07  max 0.00482726
+  -- Solve : 
+          min -6.27715e-07  max 0.00483004
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1598 , h  min 0.442891 , h max 72.0653
+     area =  40000 , M area = 740.868 , M area/( |Khat| nt) 1.07069
+     infiny-regulaty:  min 0.29252  max 2.27371
+     anisomax  8.52097, beta max = 1.52028 min  0.735932
+  --  mesh:  Nb of Triangles =   1598, Nb of Vertices 809
+  Mass = 1.00002
+  -- Solve : 
+          min -6.74482e-07  max 0.00483189
+  -- Solve : 
+          min -6.76187e-07  max 0.00483462
+  -- Solve : 
+          min -6.78792e-07  max 0.00484072
+  -- Solve : 
+          min -6.82042e-07  max 0.00484258
+  -- Solve : 
+          min -6.8573e-07  max 0.00484756
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1567 , h  min 0.470706 , h max 72.7656
+     area =  40000 , M area = 740.293 , M area/( |Khat| nt) 1.09102
+     infiny-regulaty:  min 0.271093  max 2.32877
+     anisomax  7.60031, beta max = 1.493 min  0.726347
+  --  mesh:  Nb of Triangles =   1567, Nb of Vertices 794
+  Mass = 1.00001
+  -- Solve : 
+          min -6.82326e-07  max 0.00484931
+  -- Solve : 
+          min -6.81066e-07  max 0.00485401
+  -- Solve : 
+          min -6.80816e-07  max 0.00485519
+  -- Solve : 
+          min -6.81262e-07  max 0.00486043
+  -- Solve : 
+          min -6.82165e-07  max 0.00486157
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1562 , h  min 0.421159 , h max 73.9076
+     area =  40000 , M area = 740.109 , M area/( |Khat| nt) 1.09424
+     infiny-regulaty:  min 0.373799  max 2.62409
+     anisomax  8.58729, beta max = 1.2925 min  0.676807
+  --  mesh:  Nb of Triangles =   1562, Nb of Vertices 791
+  Mass = 1
+  -- Solve : 
+          min -7.13974e-07  max 0.00486663
+  -- Solve : 
+          min -7.1259e-07  max 0.00486823
+  -- Solve : 
+          min -7.1199e-07  max 0.00487221
+  -- Solve : 
+          min -7.1194e-07  max 0.00487361
+  -- Solve : 
+          min -7.12251e-07  max 0.00487692
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1574 , h  min 0.435134 , h max 72.4419
+     area =  40000 , M area = 731.016 , M area/( |Khat| nt) 1.07256
+     infiny-regulaty:  min 0.259545  max 2.2269
+     anisomax  7.61454, beta max = 1.5326 min  0.739998
+  --  mesh:  Nb of Triangles =   1574, Nb of Vertices 797
+  Mass = 1.00002
+  -- Solve : 
+          min -7.59266e-07  max 0.00488104
+  -- Solve : 
+          min -7.48167e-07  max 0.00488435
+  -- Solve : 
+          min -7.37422e-07  max 0.00488634
+  -- Solve : 
+          min -7.2702e-07  max 0.00489078
+  -- Solve : 
+          min -7.16952e-07  max 0.00489139
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1575 , h  min 0.437556 , h max 73.6204
+     area =  40000 , M area = 728.161 , M area/( |Khat| nt) 1.06769
+     infiny-regulaty:  min 0.297886  max 2.15262
+     anisomax  7.40865, beta max = 1.41514 min  0.75294
+  --  mesh:  Nb of Triangles =   1575, Nb of Vertices 798
+  Mass = 1
+  -- Solve : 
+          min -7.15821e-07  max 0.00489509
+  -- Solve : 
+          min -7.07263e-07  max 0.00489876
+  -- Solve : 
+          min -6.99898e-07  max 0.00490052
+  -- Solve : 
+          min -6.93416e-07  max 0.00490518
+  -- Solve : 
+          min -6.87578e-07  max 0.00490544
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1560 , h  min 0.436326 , h max 71.8186
+     area =  40000 , M area = 733.519 , M area/( |Khat| nt) 1.08589
+     infiny-regulaty:  min 0.347015  max 2.44891
+     anisomax  9.81431, beta max = 1.34274 min  0.706208
+  --  mesh:  Nb of Triangles =   1560, Nb of Vertices 790
+  Mass = 1.00002
+  -- Solve : 
+          min -7.31161e-07  max 0.00490974
+  -- Solve : 
+          min -7.22952e-07  max 0.00491252
+  -- Solve : 
+          min -7.15586e-07  max 0.00491487
+  -- Solve : 
+          min -7.08752e-07  max 0.00491858
+  -- Solve : 
+          min -7.02241e-07  max 0.00491937
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1550 , h  min 0.438668 , h max 71.7451
+     area =  40000 , M area = 732.071 , M area/( |Khat| nt) 1.09074
+     infiny-regulaty:  min 0.377661  max 2.16936
+     anisomax  8.45222, beta max = 1.30785 min  0.731548
+  --  mesh:  Nb of Triangles =   1550, Nb of Vertices 786
+  Mass = 1.00002
+  -- Solve : 
+          min -6.24026e-07  max 0.00492298
+  -- Solve : 
+          min -6.09079e-07  max 0.00492512
+  -- Solve : 
+          min -6.02591e-07  max 0.00492881
+  -- Solve : 
+          min -6.04822e-07  max 0.00493055
+  -- Solve : 
+          min -6.06533e-07  max 0.0049331
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1571 , h  min 0.448082 , h max 71.9132
+     area =  40000 , M area = 729.402 , M area/( |Khat| nt) 1.07224
+     infiny-regulaty:  min 0.348877  max 2.19517
+     anisomax  6.3743, beta max = 1.32504 min  0.69672
+  --  mesh:  Nb of Triangles =   1571, Nb of Vertices 796
+  Mass = 1.00001
+  -- Solve : 
+          min -5.91516e-07  max 0.00493472
+  -- Solve : 
+          min -5.93767e-07  max 0.00493736
+  -- Solve : 
+          min -6.02486e-07  max 0.00493961
+  -- Solve : 
+          min -6.10999e-07  max 0.00494331
+  -- Solve : 
+          min -6.19323e-07  max 0.00494466
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1565 , h  min 0.463728 , h max 72.8074
+     area =  40000 , M area = 734.59 , M area/( |Khat| nt) 1.084
+     infiny-regulaty:  min 0.294485  max 2.37286
+     anisomax  7.02358, beta max = 1.43871 min  0.719978
+  --  mesh:  Nb of Triangles =   1565, Nb of Vertices 793
+  Mass = 1.00001
+  -- Solve : 
+          min -6.37393e-07  max 0.0049484
+  -- Solve : 
+          min -6.48391e-07  max 0.00494897
+  -- Solve : 
+          min -6.58946e-07  max 0.00495327
+  -- Solve : 
+          min -6.69126e-07  max 0.00495418
+  -- Solve : 
+          min -6.78983e-07  max 0.00495727
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1565 , h  min 0.48142 , h max 75.0753
+     area =  40000 , M area = 729.018 , M area/( |Khat| nt) 1.07578
+     infiny-regulaty:  min 0.338022  max 2.28783
+     anisomax  6.42381, beta max = 1.25699 min  0.734786
+  --  mesh:  Nb of Triangles =   1565, Nb of Vertices 793
+  Mass = 1.00002
+  -- Solve : 
+          min -6.67731e-07  max 0.004959
+  -- Solve : 
+          min -6.75929e-07  max 0.00496066
+  -- Solve : 
+          min -6.83987e-07  max 0.00496325
+  -- Solve : 
+          min -6.91901e-07  max 0.00496632
+  -- Solve : 
+          min -6.99679e-07  max 0.00496702
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1569 , h  min 0.454063 , h max 74.3952
+     area =  40000 , M area = 731.646 , M area/( |Khat| nt) 1.07691
+     infiny-regulaty:  min 0.348914  max 2.52408
+     anisomax  5.85175, beta max = 1.34062 min  0.686981
+  --  mesh:  Nb of Triangles =   1569, Nb of Vertices 796
+  Mass = 1
+  -- Solve : 
+          min -6.63204e-07  max 0.00497082
+  -- Solve : 
+          min -6.71195e-07  max 0.004972
+  -- Solve : 
+          min -6.79122e-07  max 0.00497468
+  -- Solve : 
+          min -6.86955e-07  max 0.00497576
+  -- Solve : 
+          min -6.94674e-07  max 0.00497751
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1585 , h  min 0.430947 , h max 73.4348
+     area =  40000 , M area = 725.956 , M area/( |Khat| nt) 1.05774
+     infiny-regulaty:  min 0.389745  max 2.24034
+     anisomax  5.50786, beta max = 1.31723 min  0.715816
+  --  mesh:  Nb of Triangles =   1585, Nb of Vertices 803
+  Mass = 0.999995
+  -- Solve : 
+          min -7.3061e-07  max 0.00497968
+  -- Solve : 
+          min -7.25261e-07  max 0.0049823
+  -- Solve : 
+          min -7.19934e-07  max 0.00498398
+  -- Solve : 
+          min -7.14646e-07  max 0.00498456
+  -- Solve : 
+          min -7.09413e-07  max 0.00498847
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1571 , h  min 0.422873 , h max 72.3807
+     area =  40000 , M area = 727.464 , M area/( |Khat| nt) 1.06939
+     infiny-regulaty:  min 0.392868  max 2.54842
+     anisomax  5.69637, beta max = 1.34288 min  0.699074
+  --  mesh:  Nb of Triangles =   1571, Nb of Vertices 796
+  Mass = 1.00001
+  -- Solve : 
+          min -7.14049e-07  max 0.00499001
+  -- Solve : 
+          min -7.11903e-07  max 0.00499231
+  -- Solve : 
+          min -7.09548e-07  max 0.00499437
+  -- Solve : 
+          min -7.07018e-07  max 0.00499547
+  -- Solve : 
+          min -7.04357e-07  max 0.00499808
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1558 , h  min 0.434193 , h max 72.2639
+     area =  40000 , M area = 726.368 , M area/( |Khat| nt) 1.07668
+     infiny-regulaty:  min 0.383102  max 2.42847
+     anisomax  6.04607, beta max = 1.29526 min  0.71471
+  --  mesh:  Nb of Triangles =   1558, Nb of Vertices 790
+  Mass = 1.00001
+  -- Solve : 
+          min -7.11125e-07  max 0.0049986
+  -- Solve : 
+          min -7.09781e-07  max 0.00500046
+  -- Solve : 
+          min -7.08338e-07  max 0.00500251
+  -- Solve : 
+          min -7.06815e-07  max 0.00500501
+  -- Solve : 
+          min -7.05234e-07  max 0.00500588
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1581 , h  min 0.435765 , h max 72.4593
+     area =  40000 , M area = 731.044 , M area/( |Khat| nt) 1.06785
+     infiny-regulaty:  min 0.377845  max 2.46456
+     anisomax  8.93244, beta max = 1.33392 min  0.658344
+  --  mesh:  Nb of Triangles =   1581, Nb of Vertices 801
+  Mass = 0.999996
+  -- Solve : 
+          min -7.72064e-07  max 0.00500825
+  -- Solve : 
+          min -7.67742e-07  max 0.00500885
+  -- Solve : 
+          min -7.63561e-07  max 0.00501139
+  -- Solve : 
+          min -7.59533e-07  max 0.00501239
+  -- Solve : 
+          min -7.55662e-07  max 0.00501435
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1580 , h  min 0.434988 , h max 73.0552
+     area =  40000 , M area = 734.369 , M area/( |Khat| nt) 1.07339
+     infiny-regulaty:  min 0.358639  max 2.63034
+     anisomax  8.13531, beta max = 1.36661 min  0.737584
+  --  mesh:  Nb of Triangles =   1580, Nb of Vertices 801
+  Mass = 1.00001
+  -- Solve : 
+          min -8.50608e-07  max 0.00501541
+  -- Solve : 
+          min -8.41397e-07  max 0.0050183
+  -- Solve : 
+          min -8.32751e-07  max 0.00501925
+  -- Solve : 
+          min -8.24633e-07  max 0.00502046
+  -- Solve : 
+          min -8.17009e-07  max 0.00502198
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1568 , h  min 0.438431 , h max 72.391
+     area =  40000 , M area = 731.646 , M area/( |Khat| nt) 1.07759
+     infiny-regulaty:  min 0.403319  max 2.38441
+     anisomax  8.17436, beta max = 1.34813 min  0.694797
+  --  mesh:  Nb of Triangles =   1568, Nb of Vertices 795
+  Mass = 1.00001
+  -- Solve : 
+          min -8.46118e-07  max 0.00502251
+  -- Solve : 
+          min -8.34156e-07  max 0.00502291
+  -- Solve : 
+          min -8.22996e-07  max 0.00502541
+  -- Solve : 
+          min -8.12581e-07  max 0.00502837
+  -- Solve : 
+          min -8.02858e-07  max 0.00502932
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1545 , h  min 0.43026 , h max 73.5149
+     area =  40000 , M area = 729.979 , M area/( |Khat| nt) 1.09114
+     infiny-regulaty:  min 0.318838  max 2.31175
+     anisomax  9.61501, beta max = 1.40648 min  0.712012
+  --  mesh:  Nb of Triangles =   1545, Nb of Vertices 783
+  Mass = 1
+  -- Solve : 
+          min -7.85667e-07  max 0.00502942
+  -- Solve : 
+          min -7.79974e-07  max 0.00503234
+  -- Solve : 
+          min -7.74729e-07  max 0.00503361
+  -- Solve : 
+          min -7.69866e-07  max 0.00503361
+  -- Solve : 
+          min -7.6532e-07  max 0.00503463
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1544 , h  min 0.436593 , h max 74.7368
+     area =  40000 , M area = 726.789 , M area/( |Khat| nt) 1.08708
+     infiny-regulaty:  min 0.334174  max 2.50975
+     anisomax  6.5678, beta max = 1.39858 min  0.716857
+  --  mesh:  Nb of Triangles =   1544, Nb of Vertices 783
+  Mass = 1.00001
+  -- Solve : 
+          min -7.62953e-07  max 0.00503711
+  -- Solve : 
+          min -7.59436e-07  max 0.00503923
+  -- Solve : 
+          min -7.55807e-07  max 0.00503958
+  -- Solve : 
+          min -7.52176e-07  max 0.00504107
+  -- Solve : 
+          min -7.48608e-07  max 0.00504285
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1539 , h  min 0.443241 , h max 75.2758
+     area =  40000 , M area = 731.557 , M area/( |Khat| nt) 1.09776
+     infiny-regulaty:  min 0.341265  max 2.37894
+     anisomax  7.36083, beta max = 1.35254 min  0.678827
+  --  mesh:  Nb of Triangles =   1539, Nb of Vertices 780
+  Mass = 1.00001
+  -- Solve : 
+          min -8.3398e-07  max 0.00504329
+  -- Solve : 
+          min -8.29959e-07  max 0.00504444
+  -- Solve : 
+          min -8.25761e-07  max 0.00504632
+  -- Solve : 
+          min -8.21409e-07  max 0.00504653
+  -- Solve : 
+          min -8.16935e-07  max 0.00504704
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1568 , h  min 0.444573 , h max 75.6487
+     area =  40000 , M area = 732.321 , M area/( |Khat| nt) 1.07859
+     infiny-regulaty:  min 0.344055  max 2.20366
+     anisomax  7.26417, beta max = 1.34738 min  0.70055
+  --  mesh:  Nb of Triangles =   1568, Nb of Vertices 795
+  Mass = 1.00001
+  -- Solve : 
+          min -8.08316e-07  max 0.00504918
+  -- Solve : 
+          min -8.09225e-07  max 0.00505047
+  -- Solve : 
+          min -8.09856e-07  max 0.00505019
+  -- Solve : 
+          min -8.1022e-07  max 0.00505145
+  -- Solve : 
+          min -8.10329e-07  max 0.00505337
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1576 , h  min 0.458252 , h max 75.5124
+     area =  40000 , M area = 729.706 , M area/( |Khat| nt) 1.06928
+     infiny-regulaty:  min 0.331495  max 2.22429
+     anisomax  7.69676, beta max = 1.42028 min  0.725498
+  --  mesh:  Nb of Triangles =   1576, Nb of Vertices 799
+  Mass = 0.999998
+  -- Solve : 
+          min -1.04142e-06  max 0.00505404
+  -- Solve : 
+          min -1.03571e-06  max 0.00505378
+  -- Solve : 
+          min -1.03006e-06  max 0.00505603
+  -- Solve : 
+          min -1.02445e-06  max 0.00505738
+  -- Solve : 
+          min -1.01886e-06  max 0.00505726
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1564 , h  min 0.43816 , h max 75.8309
+     area =  40000 , M area = 730.839 , M area/( |Khat| nt) 1.07916
+     infiny-regulaty:  min 0.378027  max 2.68125
+     anisomax  7.45759, beta max = 1.2972 min  0.652587
+  --  mesh:  Nb of Triangles =   1564, Nb of Vertices 793
+  Mass = 1.00001
+  -- Solve : 
+          min -9.53592e-07  max 0.00505779
+  -- Solve : 
+          min -9.44682e-07  max 0.00506005
+  -- Solve : 
+          min -9.35692e-07  max 0.00506093
+  -- Solve : 
+          min -9.26615e-07  max 0.00506043
+  -- Solve : 
+          min -9.17445e-07  max 0.00506061
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1554 , h  min 0.444165 , h max 75.4874
+     area =  40000 , M area = 726.721 , M area/( |Khat| nt) 1.07998
+     infiny-regulaty:  min 0.294375  max 2.7007
+     anisomax  12.0405, beta max = 1.44508 min  0.642622
+  --  mesh:  Nb of Triangles =   1554, Nb of Vertices 788
+  Mass = 1.00001
+  -- Solve : 
+          min -8.94728e-07  max 0.00506216
+  -- Solve : 
+          min -8.96291e-07  max 0.00506285
+  -- Solve : 
+          min -8.97517e-07  max 0.0050637
+  -- Solve : 
+          min -8.98385e-07  max 0.00506475
+  -- Solve : 
+          min -8.98887e-07  max 0.0050645
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1550 , h  min 0.468695 , h max 74.2092
+     area =  40000 , M area = 733.317 , M area/( |Khat| nt) 1.0926
+     infiny-regulaty:  min 0.322634  max 2.54879
+     anisomax  7.87981, beta max = 1.52179 min  0.656848
+  --  mesh:  Nb of Triangles =   1550, Nb of Vertices 786
+  Mass = 0.999998
+  -- Solve : 
+          min -8.82696e-07  max 0.0050666
+  -- Solve : 
+          min -8.85367e-07  max 0.00506824
+  -- Solve : 
+          min -8.87666e-07  max 0.00506863
+  -- Solve : 
+          min -8.89561e-07  max 0.00506785
+  -- Solve : 
+          min -8.91032e-07  max 0.00507
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1549 , h  min 0.417968 , h max 75.0484
+     area =  40000 , M area = 731.379 , M area/( |Khat| nt) 1.09041
+     infiny-regulaty:  min 0.372683  max 2.25511
+     anisomax  8.85978, beta max = 1.29962 min  0.716207
+  --  mesh:  Nb of Triangles =   1549, Nb of Vertices 785
+  Mass = 0.999999
+  -- Solve : 
+          min -9.17637e-07  max 0.00507104
+  -- Solve : 
+          min -9.09746e-07  max 0.00507095
+  -- Solve : 
+          min -9.02514e-07  max 0.00507147
+  -- Solve : 
+          min -8.95775e-07  max 0.00507291
+  -- Solve : 
+          min -8.89401e-07  max 0.00507319
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1570 , h  min 0.417011 , h max 75.5511
+     area =  40000 , M area = 731.701 , M area/( |Khat| nt) 1.0763
+     infiny-regulaty:  min 0.363716  max 2.26427
+     anisomax  8.81338, beta max = 1.30615 min  0.739277
+  --  mesh:  Nb of Triangles =   1570, Nb of Vertices 796
+  Mass = 1
+  -- Solve : 
+          min -9.43185e-07  max 0.00507266
+  -- Solve : 
+          min -9.38693e-07  max 0.00507275
+  -- Solve : 
+          min -9.33913e-07  max 0.00507402
+  -- Solve : 
+          min -9.28864e-07  max 0.0050742
+  -- Solve : 
+          min -9.23573e-07  max 0.0050733
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1583 , h  min 0.414144 , h max 75.6083
+     area =  40000 , M area = 732.887 , M area/( |Khat| nt) 1.06919
+     infiny-regulaty:  min 0.29093  max 2.3631
+     anisomax  9.01225, beta max = 1.38355 min  0.731373
+  --  mesh:  Nb of Triangles =   1583, Nb of Vertices 803
+  Mass = 1.00001
+  -- Solve : 
+          min -9.56554e-07  max 0.00507424
+  -- Solve : 
+          min -9.47151e-07  max 0.00507563
+  -- Solve : 
+          min -9.37705e-07  max 0.00507602
+  -- Solve : 
+          min -9.28213e-07  max 0.00507542
+  -- Solve : 
+          min -9.18688e-07  max 0.0050757
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1567 , h  min 0.417647 , h max 74.2744
+     area =  40000 , M area = 729.104 , M area/( |Khat| nt) 1.07453
+     infiny-regulaty:  min 0.381264  max 2.55484
+     anisomax  8.01206, beta max = 1.27833 min  0.714552
+  --  mesh:  Nb of Triangles =   1567, Nb of Vertices 795
+  Mass = 0.999995
+  -- Solve : 
+          min -8.64293e-07  max 0.00507763
+  -- Solve : 
+          min -8.49186e-07  max 0.00507899
+  -- Solve : 
+          min -8.55832e-07  max 0.00507934
+  -- Solve : 
+          min -8.6308e-07  max 0.00507873
+  -- Solve : 
+          min -8.70243e-07  max 0.00507908
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1561 , h  min 0.421935 , h max 87.1885
+     area =  40000 , M area = 728.674 , M area/( |Khat| nt) 1.07803
+     infiny-regulaty:  min 0.324369  max 2.40995
+     anisomax  8.83734, beta max = 1.3958 min  0.720561
+  --  mesh:  Nb of Triangles =   1561, Nb of Vertices 792
+  Mass = 1.00002
+  -- Solve : 
+          min -8.62284e-07  max 0.00508019
+  -- Solve : 
+          min -8.69289e-07  max 0.00508113
+  -- Solve : 
+          min -8.76122e-07  max 0.00508124
+  -- Solve : 
+          min -8.82718e-07  max 0.00508044
+  -- Solve : 
+          min -8.89039e-07  max 0.00507939
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1573 , h  min 0.424211 , h max 76.5556
+     area =  40000 , M area = 729.856 , M area/( |Khat| nt) 1.07154
+     infiny-regulaty:  min 0.275718  max 2.24387
+     anisomax  7.11125, beta max = 1.47751 min  0.747158
+  --  mesh:  Nb of Triangles =   1573, Nb of Vertices 798
+  Mass = 1.00002
+  -- Solve : 
+          min -8.69519e-07  max 0.00508
+  -- Solve : 
+          min -8.74672e-07  max 0.00508104
+  -- Solve : 
+          min -8.79769e-07  max 0.0050813
+  -- Solve : 
+          min -8.84732e-07  max 0.00508131
+  -- Solve : 
+          min -8.89512e-07  max 0.00508273
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1576 , h  min 0.42391 , h max 75.8001
+     area =  40000 , M area = 731.881 , M area/( |Khat| nt) 1.07247
+     infiny-regulaty:  min 0.358617  max 2.28853
+     anisomax  7.59107, beta max = 1.31836 min  0.723599
+  --  mesh:  Nb of Triangles =   1576, Nb of Vertices 799
+  Mass = 1.00002
+  -- Solve : 
+          min -8.79071e-07  max 0.00508321
+  -- Solve : 
+          min -8.85722e-07  max 0.0050832
+  -- Solve : 
+          min -8.9174e-07  max 0.00508247
+  -- Solve : 
+          min -8.97177e-07  max 0.00508189
+  -- Solve : 
+          min -9.02089e-07  max 0.00508342
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1566 , h  min 0.419243 , h max 73.3104
+     area =  40000 , M area = 729.617 , M area/( |Khat| nt) 1.07598
+     infiny-regulaty:  min 0.306649  max 2.47731
+     anisomax  7.76531, beta max = 1.35796 min  0.694934
+  --  mesh:  Nb of Triangles =   1566, Nb of Vertices 795
+  Mass = 1.00002
+  -- Solve : 
+          min -1.03981e-06  max 0.00508403
+  -- Solve : 
+          min -1.03589e-06  max 0.00508417
+  -- Solve : 
+          min -1.03259e-06  max 0.00508363
+  -- Solve : 
+          min -1.02982e-06  max 0.00508233
+  -- Solve : 
+          min -1.02752e-06  max 0.0050837
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1562 , h  min 0.418058 , h max 73.2946
+     area =  40000 , M area = 726.567 , M area/( |Khat| nt) 1.07422
+     infiny-regulaty:  min 0.328015  max 2.46924
+     anisomax  9.15073, beta max = 1.31384 min  0.681757
+  --  mesh:  Nb of Triangles =   1562, Nb of Vertices 793
+  Mass = 0.999994
+  -- Solve : 
+          min -1.08596e-06  max 0.00508427
+  -- Solve : 
+          min -1.08586e-06  max 0.00508484
+  -- Solve : 
+          min -1.08579e-06  max 0.00508465
+  -- Solve : 
+          min -1.08579e-06  max 0.00508375
+  -- Solve : 
+          min -1.08585e-06  max 0.00508229
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1559 , h  min 0.402526 , h max 74.4027
+     area =  40000 , M area = 725.423 , M area/( |Khat| nt) 1.07459
+     infiny-regulaty:  min 0.293987  max 2.29991
+     anisomax  14.0914, beta max = 1.42739 min  0.698014
+  --  mesh:  Nb of Triangles =   1559, Nb of Vertices 791
+  Mass = 1.00001
+  -- Solve : 
+          min -1.08428e-06  max 0.00508428
+  -- Solve : 
+          min -1.08859e-06  max 0.00508497
+  -- Solve : 
+          min -1.09254e-06  max 0.00508501
+  -- Solve : 
+          min -1.09616e-06  max 0.00508437
+  -- Solve : 
+          min -1.09951e-06  max 0.00508307
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1566 , h  min 0.419357 , h max 74.7559
+     area =  40000 , M area = 729.079 , M area/( |Khat| nt) 1.07518
+     infiny-regulaty:  min 0.297797  max 2.54536
+     anisomax  8.41913, beta max = 1.32927 min  0.720734
+  --  mesh:  Nb of Triangles =   1566, Nb of Vertices 795
+  Mass = 0.999996
+  -- Solve : 
+          min -1.14382e-06  max 0.00508471
+  -- Solve : 
+          min -1.14789e-06  max 0.00508497
+  -- Solve : 
+          min -1.15148e-06  max 0.00508457
+  -- Solve : 
+          min -1.15464e-06  max 0.00508353
+  -- Solve : 
+          min -1.15744e-06  max 0.0050843
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1565 , h  min 0.417757 , h max 75.4103
+     area =  40000 , M area = 729.933 , M area/( |Khat| nt) 1.07713
+     infiny-regulaty:  min 0.337693  max 2.20755
+     anisomax  9.45715, beta max = 1.36122 min  0.745725
+  --  mesh:  Nb of Triangles =   1565, Nb of Vertices 795
+  Mass = 1
+  -- Solve : 
+          min -1.21971e-06  max 0.00508458
+  -- Solve : 
+          min -1.21833e-06  max 0.0050844
+  -- Solve : 
+          min -1.21678e-06  max 0.00508363
+  -- Solve : 
+          min -1.21508e-06  max 0.00508313
+  -- Solve : 
+          min -1.21325e-06  max 0.00508378
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1570 , h  min 0.413972 , h max 75.4572
+     area =  40000 , M area = 726.947 , M area/( |Khat| nt) 1.06931
+     infiny-regulaty:  min 0.328478  max 2.24869
+     anisomax  6.51863, beta max = 1.42919 min  0.732198
+  --  mesh:  Nb of Triangles =   1570, Nb of Vertices 797
+  Mass = 0.999993
+  -- Solve : 
+          min -1.21109e-06  max 0.00508372
+  -- Solve : 
+          min -1.20991e-06  max 0.00508348
+  -- Solve : 
+          min -1.20878e-06  max 0.00508263
+  -- Solve : 
+          min -1.20769e-06  max 0.00508207
+  -- Solve : 
+          min -1.20662e-06  max 0.00508273
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1559 , h  min 0.419222 , h max 75.9175
+     area =  40000 , M area = 725.64 , M area/( |Khat| nt) 1.07492
+     infiny-regulaty:  min 0.285472  max 2.4768
+     anisomax  8.92015, beta max = 1.48552 min  0.7333
+  --  mesh:  Nb of Triangles =   1559, Nb of Vertices 792
+  Mass = 0.999991
+  -- Solve : 
+          min -1.16798e-06  max 0.00508272
+  -- Solve : 
+          min -1.17171e-06  max 0.00508264
+  -- Solve : 
+          min -1.17518e-06  max 0.00508196
+  -- Solve : 
+          min -1.17842e-06  max 0.00508076
+  -- Solve : 
+          min -1.18144e-06  max 0.00508069
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1556 , h  min 0.415536 , h max 72.6709
+     area =  40000 , M area = 726.056 , M area/( |Khat| nt) 1.07761
+     infiny-regulaty:  min 0.366441  max 2.44467
+     anisomax  7.31907, beta max = 1.32776 min  0.729018
+  --  mesh:  Nb of Triangles =   1556, Nb of Vertices 791
+  Mass = 0.999989
+  -- Solve : 
+          min -1.17677e-06  max 0.00508044
+  -- Solve : 
+          min -1.17462e-06  max 0.00507982
+  -- Solve : 
+          min -1.17233e-06  max 0.00507903
+  -- Solve : 
+          min -1.16991e-06  max 0.00507939
+  -- Solve : 
+          min -1.16738e-06  max 0.00508005
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1563 , h  min 0.430267 , h max 73.6453
+     area =  40000 , M area = 723.878 , M area/( |Khat| nt) 1.06956
+     infiny-regulaty:  min 0.390644  max 2.25358
+     anisomax  6.9473, beta max = 1.31479 min  0.737797
+  --  mesh:  Nb of Triangles =   1563, Nb of Vertices 793
+  Mass = 0.999999
+  -- Solve : 
+          min -1.14979e-06  max 0.00507999
+  -- Solve : 
+          min -1.14915e-06  max 0.00507996
+  -- Solve : 
+          min -1.14839e-06  max 0.00507945
+  -- Solve : 
+          min -1.14753e-06  max 0.00507846
+  -- Solve : 
+          min -1.1466e-06  max 0.005077
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1563 , h  min 0.440781 , h max 73.6187
+     area =  40000 , M area = 727.675 , M area/( |Khat| nt) 1.07517
+     infiny-regulaty:  min 0.408956  max 2.50067
+     anisomax  7.3009, beta max = 1.36728 min  0.722958
+  --  mesh:  Nb of Triangles =   1563, Nb of Vertices 794
+  Mass = 1
+  -- Solve : 
+          min -1.11454e-06  max 0.00507725
+  -- Solve : 
+          min -1.1177e-06  max 0.0050778
+  -- Solve : 
+          min -1.12062e-06  max 0.00507791
+  -- Solve : 
+          min -1.12328e-06  max 0.00507757
+  -- Solve : 
+          min -1.12571e-06  max 0.00507679
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1562 , h  min 0.404519 , h max 71.1013
+     area =  40000 , M area = 727.727 , M area/( |Khat| nt) 1.07594
+     infiny-regulaty:  min 0.346314  max 2.34249
+     anisomax  8.76958, beta max = 1.47608 min  0.712621
+  --  mesh:  Nb of Triangles =   1562, Nb of Vertices 793
+  Mass = 1.00001
+  -- Solve : 
+          min -1.10087e-06  max 0.00507606
+  -- Solve : 
+          min -1.10157e-06  max 0.00507459
+  -- Solve : 
+          min -1.10197e-06  max 0.00507443
+  -- Solve : 
+          min -1.1021e-06  max 0.00507483
+  -- Solve : 
+          min -1.10197e-06  max 0.0050748
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1580 , h  min 0.425702 , h max 70.3617
+     area =  40000 , M area = 730.777 , M area/( |Khat| nt) 1.06814
+     infiny-regulaty:  min 0.359999  max 2.34922
+     anisomax  8.82341, beta max = 1.29507 min  0.698022
+  --  mesh:  Nb of Triangles =   1580, Nb of Vertices 802
+  Mass = 0.999988
+  -- Solve : 
+          min -1.07554e-06  max 0.00507435
+  -- Solve : 
+          min -1.07291e-06  max 0.00507376
+  -- Solve : 
+          min -1.0702e-06  max 0.00507272
+  -- Solve : 
+          min -1.06746e-06  max 0.00507128
+  -- Solve : 
+          min -1.06467e-06  max 0.0050705
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1572 , h  min 0.413201 , h max 74.5244
+     area =  40000 , M area = 727.016 , M area/( |Khat| nt) 1.06805
+     infiny-regulaty:  min 0.285609  max 2.32864
+     anisomax  10.3864, beta max = 1.37518 min  0.685987
+  --  mesh:  Nb of Triangles =   1572, Nb of Vertices 798
+  Mass = 1.00001
+  -- Solve : 
+          min -1.05274e-06  max 0.0050704
+  -- Solve : 
+          min -1.05055e-06  max 0.00507069
+  -- Solve : 
+          min -1.04832e-06  max 0.00507063
+  -- Solve : 
+          min -1.04603e-06  max 0.0050702
+  -- Solve : 
+          min -1.04369e-06  max 0.00506939
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1560 , h  min 0.417932 , h max 69.6751
+     area =  40000 , M area = 724.994 , M area/( |Khat| nt) 1.07327
+     infiny-regulaty:  min 0.344194  max 2.28436
+     anisomax  12.1017, beta max = 1.46609 min  0.70994
+  --  mesh:  Nb of Triangles =   1560, Nb of Vertices 792
+  Mass = 1.00001
+  -- Solve : 
+          min -1.07094e-06  max 0.00506845
+  -- Solve : 
+          min -1.06942e-06  max 0.00506706
+  -- Solve : 
+          min -1.06799e-06  max 0.00506674
+  -- Solve : 
+          min -1.06659e-06  max 0.00506632
+  -- Solve : 
+          min -1.06523e-06  max 0.00506564
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1563 , h  min 0.432229 , h max 74.4985
+     area =  40000 , M area = 727.781 , M area/( |Khat| nt) 1.07533
+     infiny-regulaty:  min 0.354769  max 2.26964
+     anisomax  9.30319, beta max = 1.37516 min  0.725814
+  --  mesh:  Nb of Triangles =   1563, Nb of Vertices 793
+  Mass = 0.999991
+  -- Solve : 
+          min -1.08207e-06  max 0.00506506
+  -- Solve : 
+          min -1.08198e-06  max 0.00506472
+  -- Solve : 
+          min -1.08196e-06  max 0.00506399
+  -- Solve : 
+          min -1.08199e-06  max 0.00506293
+  -- Solve : 
+          min -1.08206e-06  max 0.00506301
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1579 , h  min 0.439953 , h max 69.2328
+     area =  40000 , M area = 725.738 , M area/( |Khat| nt) 1.06144
+     infiny-regulaty:  min 0.372511  max 2.3201
+     anisomax  9.43501, beta max = 1.39167 min  0.757553
+  --  mesh:  Nb of Triangles =   1579, Nb of Vertices 801
+  Mass = 0.999993
+  -- Solve : 
+          min -1.09806e-06  max 0.00506259
+  -- Solve : 
+          min -1.0986e-06  max 0.00506233
+  -- Solve : 
+          min -1.09923e-06  max 0.00506172
+  -- Solve : 
+          min -1.09993e-06  max 0.00506079
+  -- Solve : 
+          min -1.10068e-06  max 0.00505954
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1574 , h  min 0.431997 , h max 68.2713
+     area =  40000 , M area = 728.793 , M area/( |Khat| nt) 1.0693
+     infiny-regulaty:  min 0.312056  max 2.36709
+     anisomax  11.0263, beta max = 1.38088 min  0.747102
+  --  mesh:  Nb of Triangles =   1574, Nb of Vertices 799
+  Mass = 1
+  -- Solve : 
+          min -1.08173e-06  max 0.00505868
+  -- Solve : 
+          min -1.082e-06  max 0.00505848
+  -- Solve : 
+          min -1.08236e-06  max 0.00505851
+  -- Solve : 
+          min -1.08277e-06  max 0.00505824
+  -- Solve : 
+          min -1.08322e-06  max 0.00505766
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1568 , h  min 0.434939 , h max 74.4504
+     area =  40000 , M area = 730.566 , M area/( |Khat| nt) 1.076
+     infiny-regulaty:  min 0.34039  max 2.42086
+     anisomax  13.4054, beta max = 1.37359 min  0.721333
+  --  mesh:  Nb of Triangles =   1568, Nb of Vertices 796
+  Mass = 1.00001
+  -- Solve : 
+          min -1.08316e-06  max 0.00505696
+  -- Solve : 
+          min -1.08314e-06  max 0.00505604
+  -- Solve : 
+          min -1.0833e-06  max 0.00505487
+  -- Solve : 
+          min -1.08357e-06  max 0.00505343
+  -- Solve : 
+          min -1.08393e-06  max 0.00505263
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1568 , h  min 0.432931 , h max 75.7725
+     area =  40000 , M area = 727.068 , M area/( |Khat| nt) 1.07085
+     infiny-regulaty:  min 0.344348  max 2.31545
+     anisomax  14.9778, beta max = 1.38103 min  0.715765
+  --  mesh:  Nb of Triangles =   1568, Nb of Vertices 797
+  Mass = 1
+  -- Solve : 
+          min -1.05564e-06  max 0.00505195
+  -- Solve : 
+          min -1.05617e-06  max 0.00505174
+  -- Solve : 
+          min -1.05689e-06  max 0.00505128
+  -- Solve : 
+          min -1.05775e-06  max 0.00505055
+  -- Solve : 
+          min -1.05872e-06  max 0.00504956
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1556 , h  min 0.434175 , h max 72.7316
+     area =  40000 , M area = 728.775 , M area/( |Khat| nt) 1.08164
+     infiny-regulaty:  min 0.373074  max 2.24676
+     anisomax  13.7164, beta max = 1.33636 min  0.701259
+  --  mesh:  Nb of Triangles =   1556, Nb of Vertices 790
+  Mass = 0.999999
+  -- Solve : 
+          min -1.14843e-06  max 0.00504881
+  -- Solve : 
+          min -1.14786e-06  max 0.00504757
+  -- Solve : 
+          min -1.14748e-06  max 0.00504622
+  -- Solve : 
+          min -1.14727e-06  max 0.00504618
+  -- Solve : 
+          min -1.14718e-06  max 0.00504589
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1560 , h  min 0.429548 , h max 72.1765
+     area =  40000 , M area = 725.162 , M area/( |Khat| nt) 1.07352
+     infiny-regulaty:  min 0.355058  max 2.23938
+     anisomax  14.1525, beta max = 1.36466 min  0.67174
+  --  mesh:  Nb of Triangles =   1560, Nb of Vertices 792
+  Mass = 0.999993
+  -- Solve : 
+          min -1.13255e-06  max 0.00504504
+  -- Solve : 
+          min -1.13421e-06  max 0.00504455
+  -- Solve : 
+          min -1.13596e-06  max 0.00504379
+  -- Solve : 
+          min -1.13776e-06  max 0.00504279
+  -- Solve : 
+          min -1.1396e-06  max 0.00504155
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1560 , h  min 0.421736 , h max 70.8434
+     area =  40000 , M area = 722.968 , M area/( |Khat| nt) 1.07027
+     infiny-regulaty:  min 0.331308  max 2.22354
+     anisomax  14.2764, beta max = 1.32355 min  0.648141
+  --  mesh:  Nb of Triangles =   1560, Nb of Vertices 792
+  Mass = 0.999995
+  -- Solve : 
+          min -1.11312e-06  max 0.00504072
+  -- Solve : 
+          min -1.11422e-06  max 0.00503928
+  -- Solve : 
+          min -1.1155e-06  max 0.0050376
+  -- Solve : 
+          min -1.11691e-06  max 0.00503703
+  -- Solve : 
+          min -1.11841e-06  max 0.00503651
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1556 , h  min 0.42607 , h max 71.7541
+     area =  40000 , M area = 723.767 , M area/( |Khat| nt) 1.07421
+     infiny-regulaty:  min 0.34049  max 2.52389
+     anisomax  11.4945, beta max = 1.32814 min  0.682358
+  --  mesh:  Nb of Triangles =   1556, Nb of Vertices 790
+  Mass = 0.999994
+  -- Solve : 
+          min -1.05997e-06  max 0.00503553
+  -- Solve : 
+          min -1.06621e-06  max 0.00503484
+  -- Solve : 
+          min -1.07219e-06  max 0.0050339
+  -- Solve : 
+          min -1.07794e-06  max 0.00503276
+  -- Solve : 
+          min -1.08345e-06  max 0.00503245
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1562 , h  min 0.424165 , h max 71.7805
+     area =  40000 , M area = 724.654 , M area/( |Khat| nt) 1.07139
+     infiny-regulaty:  min 0.287306  max 2.2465
+     anisomax  10.4078, beta max = 1.49571 min  0.672962
+  --  mesh:  Nb of Triangles =   1562, Nb of Vertices 793
+  Mass = 0.999996
+  -- Solve : 
+          min -1.07433e-06  max 0.00503144
+  -- Solve : 
+          min -1.07867e-06  max 0.00503099
+  -- Solve : 
+          min -1.08282e-06  max 0.00503031
+  -- Solve : 
+          min -1.08677e-06  max 0.00502943
+  -- Solve : 
+          min -1.09054e-06  max 0.00502835
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1571 , h  min 0.416101 , h max 73.4249
+     area =  40000 , M area = 724.888 , M area/( |Khat| nt) 1.0656
+     infiny-regulaty:  min 0.344063  max 2.2529
+     anisomax  9.36343, beta max = 1.31579 min  0.73657
+  --  mesh:  Nb of Triangles =   1571, Nb of Vertices 797
+  Mass = 1
+  -- Solve : 
+          min -1.09626e-06  max 0.00502741
+  -- Solve : 
+          min -1.09743e-06  max 0.00502613
+  -- Solve : 
+          min -1.09852e-06  max 0.00502467
+  -- Solve : 
+          min -1.09952e-06  max 0.00502303
+  -- Solve : 
+          min -1.10045e-06  max 0.00502133
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1578 , h  min 0.412373 , h max 73.6591
+     area =  40000 , M area = 724.198 , M area/( |Khat| nt) 1.05986
+     infiny-regulaty:  min 0.366406  max 2.2056
+     anisomax  8.83306, beta max = 1.30583 min  0.712186
+  --  mesh:  Nb of Triangles =   1578, Nb of Vertices 801
+  Mass = 1
+  -- Solve : 
+          min -1.09985e-06  max 0.00502055
+  -- Solve : 
+          min -1.10361e-06  max 0.00502016
+  -- Solve : 
+          min -1.10711e-06  max 0.00501993
+  -- Solve : 
+          min -1.11037e-06  max 0.00501951
+  -- Solve : 
+          min -1.1134e-06  max 0.00501892
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1578 , h  min 0.415438 , h max 76.1355
+     area =  40000 , M area = 725.709 , M area/( |Khat| nt) 1.06207
+     infiny-regulaty:  min 0.327312  max 2.50512
+     anisomax  11.8743, beta max = 1.33232 min  0.6762
+  --  mesh:  Nb of Triangles =   1578, Nb of Vertices 801
+  Mass = 1.00001
+  -- Solve : 
+          min -1.09988e-06  max 0.00501787
+  -- Solve : 
+          min -1.1033e-06  max 0.00501709
+  -- Solve : 
+          min -1.10656e-06  max 0.00501617
+  -- Solve : 
+          min -1.10967e-06  max 0.00501507
+  -- Solve : 
+          min -1.11262e-06  max 0.00501381
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1580 , h  min 0.408165 , h max 75.0784
+     area =  40000 , M area = 724.916 , M area/( |Khat| nt) 1.05957
+     infiny-regulaty:  min 0.320573  max 2.2213
+     anisomax  11.6702, beta max = 1.31867 min  0.706349
+  --  mesh:  Nb of Triangles =   1580, Nb of Vertices 802
+  Mass = 1.00001
+  -- Solve : 
+          min -1.10072e-06  max 0.00501289
+  -- Solve : 
+          min -1.10376e-06  max 0.00501148
+  -- Solve : 
+          min -1.10662e-06  max 0.00500994
+  -- Solve : 
+          min -1.10929e-06  max 0.00500825
+  -- Solve : 
+          min -1.11179e-06  max 0.00500764
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1579 , h  min 0.41552 , h max 75.1843
+     area =  40000 , M area = 725.954 , M area/( |Khat| nt) 1.06176
+     infiny-regulaty:  min 0.30167  max 2.60322
+     anisomax  11.3743, beta max = 1.34992 min  0.703867
+  --  mesh:  Nb of Triangles =   1579, Nb of Vertices 802
+  Mass = 0.999993
+  -- Solve : 
+          min -1.10678e-06  max 0.00500647
+  -- Solve : 
+          min -1.10937e-06  max 0.00500592
+  -- Solve : 
+          min -1.11185e-06  max 0.00500519
+  -- Solve : 
+          min -1.11421e-06  max 0.0050043
+  -- Solve : 
+          min -1.11647e-06  max 0.00500326
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1573 , h  min 0.416635 , h max 73.6442
+     area =  40000 , M area = 726.186 , M area/( |Khat| nt) 1.06615
+     infiny-regulaty:  min 0.348269  max 2.32863
+     anisomax  10.1908, beta max = 1.31153 min  0.705402
+  --  mesh:  Nb of Triangles =   1573, Nb of Vertices 799
+  Mass = 0.999996
+  -- Solve : 
+          min -1.09328e-06  max 0.00500215
+  -- Solve : 
+          min -1.09591e-06  max 0.00500098
+  -- Solve : 
+          min -1.0984e-06  max 0.00499965
+  -- Solve : 
+          min -1.10074e-06  max 0.00499818
+  -- Solve : 
+          min -1.10294e-06  max 0.00499714
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1569 , h  min 0.418696 , h max 72.4742
+     area =  40000 , M area = 725.58 , M area/( |Khat| nt) 1.06798
+     infiny-regulaty:  min 0.277888  max 2.45716
+     anisomax  9.8021, beta max = 1.43468 min  0.6891
+  --  mesh:  Nb of Triangles =   1569, Nb of Vertices 797
+  Mass = 0.999999
+  -- Solve : 
+          min -1.08569e-06  max 0.00499609
+  -- Solve : 
+          min -1.08781e-06  max 0.00499522
+  -- Solve : 
+          min -1.08984e-06  max 0.00499421
+  -- Solve : 
+          min -1.09177e-06  max 0.00499306
+  -- Solve : 
+          min -1.09359e-06  max 0.00499178
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1564 , h  min 0.408356 , h max 71.5939
+     area =  40000 , M area = 723.433 , M area/( |Khat| nt) 1.06822
+     infiny-regulaty:  min 0.299749  max 2.49439
+     anisomax  10.3303, beta max = 1.28206 min  0.676903
+  --  mesh:  Nb of Triangles =   1564, Nb of Vertices 794
+  Mass = 0.999988
+  -- Solve : 
+          min -1.0632e-06  max 0.00499072
+  -- Solve : 
+          min -1.06026e-06  max 0.00498938
+  -- Solve : 
+          min -1.06567e-06  max 0.00498785
+  -- Solve : 
+          min -1.07231e-06  max 0.00498619
+  -- Solve : 
+          min -1.07853e-06  max 0.00498567
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1578 , h  min 0.41562 , h max 72.9057
+     area =  40000 , M area = 727.071 , M area/( |Khat| nt) 1.06407
+     infiny-regulaty:  min 0.353614  max 2.42257
+     anisomax  10.0039, beta max = 1.29271 min  0.659416
+  --  mesh:  Nb of Triangles =   1578, Nb of Vertices 802
+  Mass = 0.999995
+  -- Solve : 
+          min -1.03182e-06  max 0.00498442
+  -- Solve : 
+          min -1.03342e-06  max 0.00498387
+  -- Solve : 
+          min -1.03468e-06  max 0.00498316
+  -- Solve : 
+          min -1.03566e-06  max 0.00498233
+  -- Solve : 
+          min -1.0364e-06  max 0.00498137
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1601 , h  min 0.412046 , h max 69.3379
+     area =  40000 , M area = 727.241 , M area/( |Khat| nt) 1.04903
+     infiny-regulaty:  min 0.336291  max 2.23634
+     anisomax  7.53579, beta max = 1.29444 min  0.732573
+  --  mesh:  Nb of Triangles =   1601, Nb of Vertices 813
+  Mass = 1.00001
+  -- Solve : 
+          min -1.03635e-06  max 0.00498014
+  -- Solve : 
+          min -1.03532e-06  max 0.00497909
+  -- Solve : 
+          min -1.03434e-06  max 0.00497795
+  -- Solve : 
+          min -1.03341e-06  max 0.00497669
+  -- Solve : 
+          min -1.0325e-06  max 0.00497532
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1609 , h  min 0.401658 , h max 71.4936
+     area =  40000 , M area = 726.101 , M area/( |Khat| nt) 1.04217
+     infiny-regulaty:  min 0.347984  max 2.21876
+     anisomax  8.5143, beta max = 1.31102 min  0.723987
+  --  mesh:  Nb of Triangles =   1609, Nb of Vertices 817
+  Mass = 1.00001
+  -- Solve : 
+          min -1.07373e-06  max 0.0049742
+  -- Solve : 
+          min -1.07283e-06  max 0.0049727
+  -- Solve : 
+          min -1.07197e-06  max 0.00497114
+  -- Solve : 
+          min -1.07114e-06  max 0.00496947
+  -- Solve : 
+          min -1.07031e-06  max 0.0049677
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1609 , h  min 0.400229 , h max 69.7077
+     area =  40000 , M area = 725.93 , M area/( |Khat| nt) 1.04193
+     infiny-regulaty:  min 0.29674  max 2.29559
+     anisomax  7.00744, beta max = 1.30697 min  0.740571
+  --  mesh:  Nb of Triangles =   1609, Nb of Vertices 817
+  Mass = 1
+  -- Solve : 
+          min -1.05039e-06  max 0.00496691
+  -- Solve : 
+          min -1.05495e-06  max 0.00496562
+  -- Solve : 
+          min -1.05946e-06  max 0.00496494
+  -- Solve : 
+          min -1.0639e-06  max 0.00496417
+  -- Solve : 
+          min -1.06828e-06  max 0.00496328
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1609 , h  min 0.400952 , h max 71.4377
+     area =  40000 , M area = 724.123 , M area/( |Khat| nt) 1.03934
+     infiny-regulaty:  min 0.362378  max 2.27502
+     anisomax  8.56875, beta max = 1.31659 min  0.736854
+  --  mesh:  Nb of Triangles =   1609, Nb of Vertices 817
+  Mass = 1
+  -- Solve : 
+          min -1.04516e-06  max 0.00496189
+  -- Solve : 
+          min -1.04857e-06  max 0.00496094
+  -- Solve : 
+          min -1.05201e-06  max 0.00495991
+  -- Solve : 
+          min -1.05546e-06  max 0.00495877
+  -- Solve : 
+          min -1.05891e-06  max 0.00495754
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1615 , h  min 0.398589 , h max 70.5959
+     area =  40000 , M area = 727.471 , M area/( |Khat| nt) 1.04026
+     infiny-regulaty:  min 0.32587  max 2.24286
+     anisomax  8.52522, beta max = 1.47096 min  0.718646
+  --  mesh:  Nb of Triangles =   1615, Nb of Vertices 820
+  Mass = 1
+  -- Solve : 
+          min -1.06634e-06  max 0.00495632
+  -- Solve : 
+          min -1.07119e-06  max 0.00495501
+  -- Solve : 
+          min -1.07567e-06  max 0.00495363
+  -- Solve : 
+          min -1.07985e-06  max 0.00495215
+  -- Solve : 
+          min -1.08375e-06  max 0.00495059
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1614 , h  min 0.399215 , h max 76.3529
+     area =  40000 , M area = 728.421 , M area/( |Khat| nt) 1.04227
+     infiny-regulaty:  min 0.29383  max 2.52904
+     anisomax  8.66802, beta max = 1.34502 min  0.706949
+  --  mesh:  Nb of Triangles =   1614, Nb of Vertices 820
+  Mass = 1
+  -- Solve : 
+          min -1.09356e-06  max 0.00494948
+  -- Solve : 
+          min -1.09787e-06  max 0.00494786
+  -- Solve : 
+          min -1.10201e-06  max 0.00494617
+  -- Solve : 
+          min -1.10599e-06  max 0.00494458
+  -- Solve : 
+          min -1.10983e-06  max 0.00494382
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1618 , h  min 0.399728 , h max 72.9611
+     area =  40000 , M area = 726.919 , M area/( |Khat| nt) 1.03755
+     infiny-regulaty:  min 0.300354  max 2.37566
+     anisomax  8.7376, beta max = 1.35294 min  0.72512
+  --  mesh:  Nb of Triangles =   1618, Nb of Vertices 822
+  Mass = 0.999996
+  -- Solve : 
+          min -1.08281e-06  max 0.00494231
+  -- Solve : 
+          min -1.08344e-06  max 0.00494152
+  -- Solve : 
+          min -1.08416e-06  max 0.00494061
+  -- Solve : 
+          min -1.08498e-06  max 0.00493963
+  -- Solve : 
+          min -1.08589e-06  max 0.00493856
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1615 , h  min 0.3937 , h max 71.726
+     area =  40000 , M area = 727.845 , M area/( |Khat| nt) 1.0408
+     infiny-regulaty:  min 0.333414  max 2.44343
+     anisomax  8.84735, beta max = 1.39853 min  0.713238
+  --  mesh:  Nb of Triangles =   1615, Nb of Vertices 820
+  Mass = 0.999993
+  -- Solve : 
+          min -1.08696e-06  max 0.00493711
+  -- Solve : 
+          min -1.08776e-06  max 0.00493606
+  -- Solve : 
+          min -1.0887e-06  max 0.00493489
+  -- Solve : 
+          min -1.08977e-06  max 0.00493364
+  -- Solve : 
+          min -1.09098e-06  max 0.00493232
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1611 , h  min 0.395373 , h max 75.5308
+     area =  40000 , M area = 725.053 , M area/( |Khat| nt) 1.03938
+     infiny-regulaty:  min 0.361375  max 2.33241
+     anisomax  8.82766, beta max = 1.39334 min  0.739717
+  --  mesh:  Nb of Triangles =   1611, Nb of Vertices 818
+  Mass = 0.999994
+  -- Solve : 
+          min -1.12512e-06  max 0.00493104
+  -- Solve : 
+          min -1.13006e-06  max 0.0049297
+  -- Solve : 
+          min -1.1351e-06  max 0.00492826
+  -- Solve : 
+          min -1.14023e-06  max 0.00492674
+  -- Solve : 
+          min -1.14543e-06  max 0.00492516
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1600 , h  min 0.38723 , h max 73.9661
+     area =  40000 , M area = 726.811 , M area/( |Khat| nt) 1.04906
+     infiny-regulaty:  min 0.35864  max 2.38804
+     anisomax  10.7049, beta max = 1.39647 min  0.703305
+  --  mesh:  Nb of Triangles =   1600, Nb of Vertices 813
+  Mass = 1
+  -- Solve : 
+          min -1.16025e-06  max 0.00492401
+  -- Solve : 
+          min -1.16756e-06  max 0.00492237
+  -- Solve : 
+          min -1.17478e-06  max 0.00492069
+  -- Solve : 
+          min -1.1819e-06  max 0.00491893
+  -- Solve : 
+          min -1.1889e-06  max 0.00491712
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1600 , h  min 0.385213 , h max 74.1172
+     area =  40000 , M area = 725.581 , M area/( |Khat| nt) 1.04729
+     infiny-regulaty:  min 0.257344  max 2.3973
+     anisomax  8.03355, beta max = 1.36744 min  0.676763
+  --  mesh:  Nb of Triangles =   1600, Nb of Vertices 813
+  Mass = 1.00001
+  -- Solve : 
+          min -1.19494e-06  max 0.00491629
+  -- Solve : 
+          min -1.2004e-06  max 0.00491443
+  -- Solve : 
+          min -1.20586e-06  max 0.00491321
+  -- Solve : 
+          min -1.2113e-06  max 0.0049121
+  -- Solve : 
+          min -1.21671e-06  max 0.00491119
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1607 , h  min 0.385955 , h max 74.1562
+     area =  40000 , M area = 727.052 , M area/( |Khat| nt) 1.04484
+     infiny-regulaty:  min 0.247344  max 2.28856
+     anisomax  8.31865, beta max = 1.41751 min  0.728973
+  --  mesh:  Nb of Triangles =   1607, Nb of Vertices 817
+  Mass = 1.00001
+  -- Solve : 
+          min -1.22408e-06  max 0.00490964
+  -- Solve : 
+          min -1.23318e-06  max 0.00490866
+  -- Solve : 
+          min -1.24208e-06  max 0.00490765
+  -- Solve : 
+          min -1.25076e-06  max 0.00490658
+  -- Solve : 
+          min -1.2592e-06  max 0.00490544
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1611 , h  min 0.390126 , h max 73.1711
+     area =  40000 , M area = 725.673 , M area/( |Khat| nt) 1.04027
+     infiny-regulaty:  min 0.239969  max 2.30648
+     anisomax  9.48979, beta max = 1.38525 min  0.713217
+  --  mesh:  Nb of Triangles =   1611, Nb of Vertices 819
+  Mass = 1
+  -- Solve : 
+          min -1.20963e-06  max 0.00490398
+  -- Solve : 
+          min -1.21647e-06  max 0.00490282
+  -- Solve : 
+          min -1.2231e-06  max 0.00490159
+  -- Solve : 
+          min -1.22952e-06  max 0.00490031
+  -- Solve : 
+          min -1.23576e-06  max 0.00489896
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1607 , h  min 0.39225 , h max 74.5514
+     area =  40000 , M area = 723.912 , M area/( |Khat| nt) 1.04033
+     infiny-regulaty:  min 0.37431  max 2.24573
+     anisomax  8.73592, beta max = 1.3533 min  0.728937
+  --  mesh:  Nb of Triangles =   1607, Nb of Vertices 817
+  Mass = 1.00002
+  -- Solve : 
+          min -1.23322e-06  max 0.0048976
+  -- Solve : 
+          min -1.22192e-06  max 0.00489612
+  -- Solve : 
+          min -1.21212e-06  max 0.00489471
+  -- Solve : 
+          min -1.2036e-06  max 0.00489323
+  -- Solve : 
+          min -1.19623e-06  max 0.00489171
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1600 , h  min 0.38444 , h max 71.3509
+     area =  40000 , M area = 720.889 , M area/( |Khat| nt) 1.04051
+     infiny-regulaty:  min 0.311148  max 2.08455
+     anisomax  8.93808, beta max = 1.36941 min  0.72377
+  --  mesh:  Nb of Triangles =   1600, Nb of Vertices 813
+  Mass = 1.00001
+  -- Solve : 
+          min -1.21221e-06  max 0.00489045
+  -- Solve : 
+          min -1.21257e-06  max 0.00488887
+  -- Solve : 
+          min -1.2134e-06  max 0.00488727
+  -- Solve : 
+          min -1.2146e-06  max 0.00488563
+  -- Solve : 
+          min -1.21612e-06  max 0.00488418
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1598 , h  min 0.384307 , h max 71.904
+     area =  40000 , M area = 721.968 , M area/( |Khat| nt) 1.04337
+     infiny-regulaty:  min 0.321076  max 2.19962
+     anisomax  9.53404, beta max = 1.36386 min  0.72151
+  --  mesh:  Nb of Triangles =   1598, Nb of Vertices 812
+  Mass = 1
+  -- Solve : 
+          min -1.22189e-06  max 0.00488286
+  -- Solve : 
+          min -1.22519e-06  max 0.00488153
+  -- Solve : 
+          min -1.22867e-06  max 0.0048804
+  -- Solve : 
+          min -1.23229e-06  max 0.00487921
+  -- Solve : 
+          min -1.23601e-06  max 0.00487798
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1599 , h  min 0.386689 , h max 72.4322
+     area =  40000 , M area = 723.322 , M area/( |Khat| nt) 1.04468
+     infiny-regulaty:  min 0.321577  max 2.34955
+     anisomax  8.92485, beta max = 1.33261 min  0.719383
+  --  mesh:  Nb of Triangles =   1599, Nb of Vertices 812
+  Mass = 0.999995
+  -- Solve : 
+          min -1.30499e-06  max 0.00487648
+  -- Solve : 
+          min -1.3038e-06  max 0.00487527
+  -- Solve : 
+          min -1.30249e-06  max 0.00487398
+  -- Solve : 
+          min -1.30111e-06  max 0.00487265
+  -- Solve : 
+          min -1.29971e-06  max 0.00487127
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1596 , h  min 0.384585 , h max 70.5305
+     area =  40000 , M area = 721.281 , M area/( |Khat| nt) 1.04369
+     infiny-regulaty:  min 0.363296  max 2.25574
+     anisomax  8.90126, beta max = 1.30373 min  0.718119
+  --  mesh:  Nb of Triangles =   1596, Nb of Vertices 811
+  Mass = 0.999992
+  -- Solve : 
+          min -1.47109e-06  max 0.00486986
+  -- Solve : 
+          min -1.47327e-06  max 0.00486851
+  -- Solve : 
+          min -1.47532e-06  max 0.00486708
+  -- Solve : 
+          min -1.47726e-06  max 0.0048656
+  -- Solve : 
+          min -1.47911e-06  max 0.00486408
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1595 , h  min 0.381943 , h max 71.4264
+     area =  40000 , M area = 721.045 , M area/( |Khat| nt) 1.044
+     infiny-regulaty:  min 0.317245  max 2.16888
+     anisomax  9.01503, beta max = 1.31018 min  0.708507
+  --  mesh:  Nb of Triangles =   1595, Nb of Vertices 810
+  Mass = 0.999989
+  -- Solve : 
+          min -1.46716e-06  max 0.0048628
+  -- Solve : 
+          min -1.46977e-06  max 0.00486133
+  -- Solve : 
+          min -1.47219e-06  max 0.00485976
+  -- Solve : 
+          min -1.47445e-06  max 0.00485815
+  -- Solve : 
+          min -1.47655e-06  max 0.0048565
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1599 , h  min 0.383766 , h max 75.1837
+     area =  40000 , M area = 726.703 , M area/( |Khat| nt) 1.04956
+     infiny-regulaty:  min 0.29057  max 2.55377
+     anisomax  7.67135, beta max = 1.31551 min  0.693503
+  --  mesh:  Nb of Triangles =   1599, Nb of Vertices 813
+  Mass = 1.00001
+  -- Solve : 
+          min -1.4344e-06  max 0.00485533
+  -- Solve : 
+          min -1.43528e-06  max 0.00485365
+  -- Solve : 
+          min -1.43603e-06  max 0.00485196
+  -- Solve : 
+          min -1.43668e-06  max 0.00485049
+  -- Solve : 
+          min -1.43723e-06  max 0.004849
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1610 , h  min 0.382458 , h max 71.2827
+     area =  40000 , M area = 724.579 , M area/( |Khat| nt) 1.03934
+     infiny-regulaty:  min 0.41851  max 2.65521
+     anisomax  9.86252, beta max = 1.24463 min  0.731113
+  --  mesh:  Nb of Triangles =   1610, Nb of Vertices 818
+  Mass = 1.00001
+  -- Solve : 
+          min -1.60245e-06  max 0.0048477
+  -- Solve : 
+          min -1.59839e-06  max 0.00484617
+  -- Solve : 
+          min -1.59445e-06  max 0.00484464
+  -- Solve : 
+          min -1.59062e-06  max 0.00484314
+  -- Solve : 
+          min -1.58689e-06  max 0.00484196
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1612 , h  min 0.378104 , h max 71.2421
+     area =  40000 , M area = 726.257 , M area/( |Khat| nt) 1.04046
+     infiny-regulaty:  min 0.38454  max 2.54198
+     anisomax  10.415, beta max = 1.294 min  0.727341
+  --  mesh:  Nb of Triangles =   1612, Nb of Vertices 819
+  Mass = 1
+  -- Solve : 
+          min -1.62074e-06  max 0.00484031
+  -- Solve : 
+          min -1.61561e-06  max 0.00483911
+  -- Solve : 
+          min -1.61064e-06  max 0.0048379
+  -- Solve : 
+          min -1.60582e-06  max 0.00483665
+  -- Solve : 
+          min -1.60115e-06  max 0.00483537
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1609 , h  min 0.376452 , h max 70.4274
+     area =  40000 , M area = 724.32 , M area/( |Khat| nt) 1.03962
+     infiny-regulaty:  min 0.392308  max 2.54031
+     anisomax  10.5968, beta max = 1.32653 min  0.718037
+  --  mesh:  Nb of Triangles =   1609, Nb of Vertices 817
+  Mass = 0.999994
+  -- Solve : 
+          min -1.51452e-06  max 0.00483383
+  -- Solve : 
+          min -1.51422e-06  max 0.00483257
+  -- Solve : 
+          min -1.51396e-06  max 0.00483124
+  -- Solve : 
+          min -1.51375e-06  max 0.00482988
+  -- Solve : 
+          min -1.51356e-06  max 0.00482849
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1607 , h  min 0.375262 , h max 75.8668
+     area =  40000 , M area = 725.702 , M area/( |Khat| nt) 1.0429
+     infiny-regulaty:  min 0.370434  max 2.55897
+     anisomax  11.1664, beta max = 1.32375 min  0.706506
+  --  mesh:  Nb of Triangles =   1607, Nb of Vertices 816
+  Mass = 0.999997
+  -- Solve : 
+          min -1.46377e-06  max 0.00482701
+  -- Solve : 
+          min -1.46491e-06  max 0.00482563
+  -- Solve : 
+          min -1.46661e-06  max 0.0048242
+  -- Solve : 
+          min -1.46825e-06  max 0.00482274
+  -- Solve : 
+          min -1.46985e-06  max 0.00482125
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1608 , h  min 0.372282 , h max 71.8429
+     area =  40000 , M area = 722.851 , M area/( |Khat| nt) 1.03815
+     infiny-regulaty:  min 0.312161  max 2.61652
+     anisomax  11.1641, beta max = 1.34309 min  0.699043
+  --  mesh:  Nb of Triangles =   1608, Nb of Vertices 817
+  Mass = 1
+  -- Solve : 
+          min -1.62957e-06  max 0.00481987
+  -- Solve : 
+          min -1.6289e-06  max 0.00481837
+  -- Solve : 
+          min -1.62825e-06  max 0.00481685
+  -- Solve : 
+          min -1.62759e-06  max 0.0048153
+  -- Solve : 
+          min -1.62693e-06  max 0.00481372
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1609 , h  min 0.369247 , h max 71.2526
+     area =  40000 , M area = 726.53 , M area/( |Khat| nt) 1.04279
+     infiny-regulaty:  min 0.338363  max 2.48909
+     anisomax  8.09194, beta max = 1.24947 min  0.695508
+  --  mesh:  Nb of Triangles =   1609, Nb of Vertices 818
+  Mass = 1.00001
+  -- Solve : 
+          min -1.58514e-06  max 0.00481243
+  -- Solve : 
+          min -1.58248e-06  max 0.0048108
+  -- Solve : 
+          min -1.57998e-06  max 0.0048092
+  -- Solve : 
+          min -1.57761e-06  max 0.00480757
+  -- Solve : 
+          min -1.57535e-06  max 0.00480591
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1596 , h  min 0.36156 , h max 72.3472
+     area =  40000 , M area = 725.717 , M area/( |Khat| nt) 1.05011
+     infiny-regulaty:  min 0.391338  max 2.47257
+     anisomax  8.3712, beta max = 1.26916 min  0.695221
+  --  mesh:  Nb of Triangles =   1596, Nb of Vertices 811
+  Mass = 1
+  -- Solve : 
+          min -1.89536e-06  max 0.00480469
+  -- Solve : 
+          min -1.89007e-06  max 0.00480303
+  -- Solve : 
+          min -1.88487e-06  max 0.00480135
+  -- Solve : 
+          min -1.87976e-06  max 0.00479964
+  -- Solve : 
+          min -1.87476e-06  max 0.0047983
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1602 , h  min 0.364817 , h max 72.4262
+     area =  40000 , M area = 726.037 , M area/( |Khat| nt) 1.04664
+     infiny-regulaty:  min 0.23663  max 2.44661
+     anisomax  9.23203, beta max = 1.60269 min  0.669379
+  --  mesh:  Nb of Triangles =   1602, Nb of Vertices 814
+  Mass = 0.999987
+  -- Solve : 
+          min -1.81991e-06  max 0.00479681
+  -- Solve : 
+          min -1.81665e-06  max 0.00479544
+  -- Solve : 
+          min -1.81342e-06  max 0.00479428
+  -- Solve : 
+          min -1.81028e-06  max 0.00479309
+  -- Solve : 
+          min -1.80723e-06  max 0.00479188
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1603 , h  min 0.358321 , h max 70.8047
+     area =  40000 , M area = 725.408 , M area/( |Khat| nt) 1.04508
+     infiny-regulaty:  min 0.30609  max 2.57119
+     anisomax  10.4241, beta max = 1.47328 min  0.724956
+  --  mesh:  Nb of Triangles =   1603, Nb of Vertices 814
+  Mass = 0.999993
+  -- Solve : 
+          min -1.92823e-06  max 0.00479016
+  -- Solve : 
+          min -1.92048e-06  max 0.00478898
+  -- Solve : 
+          min -1.91292e-06  max 0.00478773
+  -- Solve : 
+          min -1.90555e-06  max 0.00478647
+  -- Solve : 
+          min -1.89838e-06  max 0.00478518
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1609 , h  min 0.357125 , h max 71.4025
+     area =  40000 , M area = 728.567 , M area/( |Khat| nt) 1.04571
+     infiny-regulaty:  min 0.283046  max 2.53581
+     anisomax  11.2013, beta max = 1.38158 min  0.714047
+  --  mesh:  Nb of Triangles =   1609, Nb of Vertices 818
+  Mass = 0.999994
+  -- Solve : 
+          min -1.7258e-06  max 0.00478357
+  -- Solve : 
+          min -1.72405e-06  max 0.00478231
+  -- Solve : 
+          min -1.72225e-06  max 0.00478098
+  -- Solve : 
+          min -1.72042e-06  max 0.00477964
+  -- Solve : 
+          min -1.71855e-06  max 0.00477827
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1607 , h  min 0.358332 , h max 72.4813
+     area =  40000 , M area = 725.379 , M area/( |Khat| nt) 1.04243
+     infiny-regulaty:  min 0.247527  max 2.38422
+     anisomax  11.4896, beta max = 1.41224 min  0.718623
+  --  mesh:  Nb of Triangles =   1607, Nb of Vertices 817
+  Mass = 1.00003
+  -- Solve : 
+          min -1.76677e-06  max 0.00477665
+  -- Solve : 
+          min -1.76374e-06  max 0.00477515
+  -- Solve : 
+          min -1.76111e-06  max 0.00477377
+  -- Solve : 
+          min -1.75876e-06  max 0.00477237
+  -- Solve : 
+          min -1.75666e-06  max 0.00477094
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1605 , h  min 0.353725 , h max 71.5314
+     area =  40000 , M area = 722.337 , M area/( |Khat| nt) 1.03936
+     infiny-regulaty:  min 0.366887  max 2.54572
+     anisomax  11.3565, beta max = 1.29796 min  0.689497
+  --  mesh:  Nb of Triangles =   1605, Nb of Vertices 816
+  Mass = 0.999978
+  -- Solve : 
+          min -1.85962e-06  max 0.00476945
+  -- Solve : 
+          min -1.85594e-06  max 0.00476812
+  -- Solve : 
+          min -1.8525e-06  max 0.00476667
+  -- Solve : 
+          min -1.84929e-06  max 0.0047652
+  -- Solve : 
+          min -1.84628e-06  max 0.0047637
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1605 , h  min 0.35439 , h max 70.1197
+     area =  40000 , M area = 725.78 , M area/( |Khat| nt) 1.04431
+     infiny-regulaty:  min 0.289146  max 2.60551
+     anisomax  11.0063, beta max = 1.31054 min  0.721183
+  --  mesh:  Nb of Triangles =   1605, Nb of Vertices 816
+  Mass = 0.999989
+  -- Solve : 
+          min -2.01463e-06  max 0.00476223
+  -- Solve : 
+          min -2.01305e-06  max 0.00476079
+  -- Solve : 
+          min -2.01119e-06  max 0.00475927
+  -- Solve : 
+          min -2.00911e-06  max 0.00475774
+  -- Solve : 
+          min -2.00685e-06  max 0.00475619
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1612 , h  min 0.349721 , h max 71.1017
+     area =  40000 , M area = 724.75 , M area/( |Khat| nt) 1.0383
+     infiny-regulaty:  min 0.299213  max 2.5465
+     anisomax  10.4527, beta max = 1.27455 min  0.716775
+  --  mesh:  Nb of Triangles =   1612, Nb of Vertices 819
+  Mass = 1.00002
+  -- Solve : 
+          min -2.0502e-06  max 0.00475479
+  -- Solve : 
+          min -2.04482e-06  max 0.00475317
+  -- Solve : 
+          min -2.03961e-06  max 0.0047516
+  -- Solve : 
+          min -2.03454e-06  max 0.00475001
+  -- Solve : 
+          min -2.02959e-06  max 0.00474841
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1614 , h  min 0.349574 , h max 70.3851
+     area =  40000 , M area = 722.661 , M area/( |Khat| nt) 1.03402
+     infiny-regulaty:  min 0.303519  max 2.25956
+     anisomax  10.6584, beta max = 1.3108 min  0.734469
+  --  mesh:  Nb of Triangles =   1614, Nb of Vertices 820
+  Mass = 1.00001
+  -- Solve : 
+          min -2.04278e-06  max 0.00474709
+  -- Solve : 
+          min -2.0357e-06  max 0.00474546
+  -- Solve : 
+          min -2.02892e-06  max 0.00474385
+  -- Solve : 
+          min -2.02241e-06  max 0.00474223
+  -- Solve : 
+          min -2.01616e-06  max 0.00474059
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1620 , h  min 0.350201 , h max 70.8376
+     area =  40000 , M area = 723.393 , M area/( |Khat| nt) 1.03124
+     infiny-regulaty:  min 0.392084  max 2.28468
+     anisomax  10.1018, beta max = 1.26265 min  0.720035
+  --  mesh:  Nb of Triangles =   1620, Nb of Vertices 823
+  Mass = 1.00001
+  -- Solve : 
+          min -1.99121e-06  max 0.00473932
+  -- Solve : 
+          min -1.98693e-06  max 0.00473764
+  -- Solve : 
+          min -1.9829e-06  max 0.00473598
+  -- Solve : 
+          min -1.97909e-06  max 0.00473432
+  -- Solve : 
+          min -1.97547e-06  max 0.00473264
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1618 , h  min 0.344989 , h max 70.119
+     area =  40000 , M area = 722.892 , M area/( |Khat| nt) 1.0318
+     infiny-regulaty:  min 0.227441  max 2.31869
+     anisomax  10.1584, beta max = 1.72325 min  0.715763
+  --  mesh:  Nb of Triangles =   1618, Nb of Vertices 822
+  Mass = 1.00002
+  -- Solve : 
+          min -1.9809e-06  max 0.00473138
+  -- Solve : 
+          min -1.97399e-06  max 0.00472962
+  -- Solve : 
+          min -1.96735e-06  max 0.00472817
+  -- Solve : 
+          min -1.96094e-06  max 0.00472691
+  -- Solve : 
+          min -1.95474e-06  max 0.00472564
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1620 , h  min 0.341814 , h max 70.3609
+     area =  40000 , M area = 723.686 , M area/( |Khat| nt) 1.03165
+     infiny-regulaty:  min 0.408074  max 2.36085
+     anisomax  11.4574, beta max = 1.33587 min  0.704598
+  --  mesh:  Nb of Triangles =   1620, Nb of Vertices 823
+  Mass = 1.00001
+  -- Solve : 
+          min -1.91733e-06  max 0.00472396
+  -- Solve : 
+          min -1.909e-06  max 0.00472262
+  -- Solve : 
+          min -1.901e-06  max 0.00472133
+  -- Solve : 
+          min -1.8933e-06  max 0.00472002
+  -- Solve : 
+          min -1.88587e-06  max 0.00471869
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1622 , h  min 0.341762 , h max 70.3947
+     area =  40000 , M area = 721.589 , M area/( |Khat| nt) 1.0274
+     infiny-regulaty:  min 0.399987  max 2.4034
+     anisomax  11.2664, beta max = 1.29946 min  0.697995
+  --  mesh:  Nb of Triangles =   1622, Nb of Vertices 824
+  Mass = 1
+  -- Solve : 
+          min -1.87776e-06  max 0.00471708
+  -- Solve : 
+          min -1.87072e-06  max 0.00471575
+  -- Solve : 
+          min -1.86392e-06  max 0.0047144
+  -- Solve : 
+          min -1.85733e-06  max 0.00471305
+  -- Solve : 
+          min -1.85095e-06  max 0.00471168
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1624 , h  min 0.343119 , h max 70.447
+     area =  40000 , M area = 720.277 , M area/( |Khat| nt) 1.02427
+     infiny-regulaty:  min 0.39382  max 2.38546
+     anisomax  9.65015, beta max = 1.30033 min  0.689359
+  --  mesh:  Nb of Triangles =   1624, Nb of Vertices 825
+  Mass = 1.00001
+  -- Solve : 
+          min -1.84683e-06  max 0.00471007
+  -- Solve : 
+          min -1.84744e-06  max 0.00470865
+  -- Solve : 
+          min -1.84801e-06  max 0.00470727
+  -- Solve : 
+          min -1.84853e-06  max 0.00470587
+  -- Solve : 
+          min -1.84899e-06  max 0.00470447
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1632 , h  min 0.337785 , h max 70.1914
+     area =  40000 , M area = 723.327 , M area/( |Khat| nt) 1.02356
+     infiny-regulaty:  min 0.31254  max 2.177
+     anisomax  9.38065, beta max = 1.38385 min  0.754932
+  --  mesh:  Nb of Triangles =   1632, Nb of Vertices 829
+  Mass = 1.00001
+  -- Solve : 
+          min -1.89591e-06  max 0.00470291
+  -- Solve : 
+          min -1.89175e-06  max 0.00470144
+  -- Solve : 
+          min -1.88764e-06  max 0.00470002
+  -- Solve : 
+          min -1.88356e-06  max 0.00469859
+  -- Solve : 
+          min -1.87951e-06  max 0.00469715
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1630 , h  min 0.337041 , h max 70.8918
+     area =  40000 , M area = 722.452 , M area/( |Khat| nt) 1.02358
+     infiny-regulaty:  min 0.422303  max 2.2228
+     anisomax  8.8799, beta max = 1.26512 min  0.749773
+  --  mesh:  Nb of Triangles =   1630, Nb of Vertices 828
+  Mass = 0.999996
+  -- Solve : 
+          min -1.87673e-06  max 0.00469567
+  -- Solve : 
+          min -1.87143e-06  max 0.00469424
+  -- Solve : 
+          min -1.86618e-06  max 0.00469279
+  -- Solve : 
+          min -1.86101e-06  max 0.00469132
+  -- Solve : 
+          min -1.85592e-06  max 0.00468984
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1634 , h  min 0.338456 , h max 71.5467
+     area =  40000 , M area = 721.27 , M area/( |Khat| nt) 1.0194
+     infiny-regulaty:  min 0.410821  max 2.32704
+     anisomax  8.50506, beta max = 1.26982 min  0.746468
+  --  mesh:  Nb of Triangles =   1634, Nb of Vertices 830
+  Mass = 1
+  -- Solve : 
+          min -1.80749e-06  max 0.00468836
+  -- Solve : 
+          min -1.79797e-06  max 0.00468688
+  -- Solve : 
+          min -1.78871e-06  max 0.00468539
+  -- Solve : 
+          min -1.77971e-06  max 0.00468389
+  -- Solve : 
+          min -1.77096e-06  max 0.00468238
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1634 , h  min 0.335946 , h max 71.5186
+     area =  40000 , M area = 720.897 , M area/( |Khat| nt) 1.01887
+     infiny-regulaty:  min 0.38965  max 2.18957
+     anisomax  8.48513, beta max = 1.32457 min  0.746145
+  --  mesh:  Nb of Triangles =   1634, Nb of Vertices 830
+  Mass = 1
+  -- Solve : 
+          min -1.6828e-06  max 0.00468095
+  -- Solve : 
+          min -1.66978e-06  max 0.00467943
+  -- Solve : 
+          min -1.65723e-06  max 0.00467791
+  -- Solve : 
+          min -1.64511e-06  max 0.00467638
+  -- Solve : 
+          min -1.63338e-06  max 0.00467485
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1631 , h  min 0.334259 , h max 72.223
+     area =  40000 , M area = 721.021 , M area/( |Khat| nt) 1.02092
+     infiny-regulaty:  min 0.303155  max 2.37918
+     anisomax  8.38353, beta max = 1.37948 min  0.749026
+  --  mesh:  Nb of Triangles =   1631, Nb of Vertices 829
+  Mass = 1.00001
+  -- Solve : 
+          min -1.61496e-06  max 0.00467347
+  -- Solve : 
+          min -1.61806e-06  max 0.00467188
+  -- Solve : 
+          min -1.62104e-06  max 0.00467034
+  -- Solve : 
+          min -1.62387e-06  max 0.00466879
+  -- Solve : 
+          min -1.62657e-06  max 0.00466723
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1633 , h  min 0.33423 , h max 70.723
+     area =  40000 , M area = 722.09 , M area/( |Khat| nt) 1.02119
+     infiny-regulaty:  min 0.266798  max 2.37439
+     anisomax  8.48205, beta max = 1.33993 min  0.737782
+  --  mesh:  Nb of Triangles =   1633, Nb of Vertices 830
+  Mass = 1.00001
+  -- Solve : 
+          min -1.54292e-06  max 0.00466583
+  -- Solve : 
+          min -1.53318e-06  max 0.00466421
+  -- Solve : 
+          min -1.52378e-06  max 0.00466265
+  -- Solve : 
+          min -1.51468e-06  max 0.00466107
+  -- Solve : 
+          min -1.50585e-06  max 0.00465949
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1632 , h  min 0.332536 , h max 70.3451
+     area =  40000 , M area = 720.601 , M area/( |Khat| nt) 1.0197
+     infiny-regulaty:  min 0.25862  max 2.40338
+     anisomax  8.49209, beta max = 1.37129 min  0.733817
+  --  mesh:  Nb of Triangles =   1632, Nb of Vertices 829
+  Mass = 0.999999
+  -- Solve : 
+          min -1.55407e-06  max 0.00465814
+  -- Solve : 
+          min -1.55703e-06  max 0.00465657
+  -- Solve : 
+          min -1.5599e-06  max 0.00465498
+  -- Solve : 
+          min -1.56268e-06  max 0.00465338
+  -- Solve : 
+          min -1.56537e-06  max 0.00465178
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1633 , h  min 0.377025 , h max 70.4926
+     area =  40000 , M area = 720.37 , M area/( |Khat| nt) 1.01875
+     infiny-regulaty:  min 0.361852  max 2.13461
+     anisomax  8.57502, beta max = 1.30046 min  0.739701
+  --  mesh:  Nb of Triangles =   1633, Nb of Vertices 830
+  Mass = 1
+  -- Solve : 
+          min -1.54669e-06  max 0.00465047
+  -- Solve : 
+          min -1.54976e-06  max 0.00464887
+  -- Solve : 
+          min -1.5527e-06  max 0.00464726
+  -- Solve : 
+          min -1.55552e-06  max 0.00464565
+  -- Solve : 
+          min -1.55823e-06  max 0.00464403
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1636 , h  min 0.37512 , h max 70.7582
+     area =  40000 , M area = 722.279 , M area/( |Khat| nt) 1.01958
+     infiny-regulaty:  min 0.266765  max 2.58266
+     anisomax  9.61221, beta max = 1.33985 min  0.714508
+  --  mesh:  Nb of Triangles =   1636, Nb of Vertices 831
+  Mass = 1.00002
+  -- Solve : 
+          min -1.59673e-06  max 0.0046427
+  -- Solve : 
+          min -1.59992e-06  max 0.00464101
+  -- Solve : 
+          min -1.60303e-06  max 0.00463938
+  -- Solve : 
+          min -1.60605e-06  max 0.00463797
+  -- Solve : 
+          min -1.60897e-06  max 0.00463663
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1632 , h  min 0.373815 , h max 72.0382
+     area =  40000 , M area = 720.312 , M area/( |Khat| nt) 1.0193
+     infiny-regulaty:  min 0.277187  max 2.23153
+     anisomax  10.1571, beta max = 1.28957 min  0.726468
+  --  mesh:  Nb of Triangles =   1632, Nb of Vertices 829
+  Mass = 0.999991
+  -- Solve : 
+          min -1.5594e-06  max 0.00463508
+  -- Solve : 
+          min -1.56331e-06  max 0.00463379
+  -- Solve : 
+          min -1.56703e-06  max 0.00463244
+  -- Solve : 
+          min -1.57058e-06  max 0.00463109
+  -- Solve : 
+          min -1.57396e-06  max 0.00462973
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1638 , h  min 0.373231 , h max 75.3875
+     area =  40000 , M area = 720.266 , M area/( |Khat| nt) 1.0155
+     infiny-regulaty:  min 0.312013  max 2.30941
+     anisomax  9.18136, beta max = 1.33137 min  0.723221
+  --  mesh:  Nb of Triangles =   1638, Nb of Vertices 832
+  Mass = 1.00001
+  -- Solve : 
+          min -1.54037e-06  max 0.0046282
+  -- Solve : 
+          min -1.54094e-06  max 0.00462681
+  -- Solve : 
+          min -1.54158e-06  max 0.00462545
+  -- Solve : 
+          min -1.54228e-06  max 0.00462407
+  -- Solve : 
+          min -1.54301e-06  max 0.00462269
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1636 , h  min 0.372632 , h max 74.196
+     area =  40000 , M area = 721.227 , M area/( |Khat| nt) 1.01809
+     infiny-regulaty:  min 0.269187  max 2.21821
+     anisomax  9.33304, beta max = 1.30883 min  0.666889
+  --  mesh:  Nb of Triangles =   1636, Nb of Vertices 832
+  Mass = 0.999986
+  -- Solve : 
+          min -1.57307e-06  max 0.00462117
+  -- Solve : 
+          min -1.57331e-06  max 0.00461985
+  -- Solve : 
+          min -1.5737e-06  max 0.00461846
+  -- Solve : 
+          min -1.57423e-06  max 0.00461707
+  -- Solve : 
+          min -1.5749e-06  max 0.00461567
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1651 , h  min 0.370912 , h max 72.7026
+     area =  40000 , M area = 721.851 , M area/( |Khat| nt) 1.00972
+     infiny-regulaty:  min 0.287867  max 2.34367
+     anisomax  10.0576, beta max = 1.32943 min  0.699502
+  --  mesh:  Nb of Triangles =   1651, Nb of Vertices 839
+  Mass = 0.999998
+  -- Solve : 
+          min -1.59834e-06  max 0.00461418
+  -- Solve : 
+          min -1.60029e-06  max 0.00461279
+  -- Solve : 
+          min -1.60232e-06  max 0.00461138
+  -- Solve : 
+          min -1.60442e-06  max 0.00460997
+  -- Solve : 
+          min -1.60658e-06  max 0.00460855
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1655 , h  min 0.370731 , h max 74.2892
+     area =  40000 , M area = 724.309 , M area/( |Khat| nt) 1.01071
+     infiny-regulaty:  min 0.249077  max 2.30465
+     anisomax  10.1257, beta max = 1.3437 min  0.707835
+  --  mesh:  Nb of Triangles =   1655, Nb of Vertices 841
+  Mass = 0.999998
+  -- Solve : 
+          min -1.61503e-06  max 0.00460709
+  -- Solve : 
+          min -1.61914e-06  max 0.00460568
+  -- Solve : 
+          min -1.62315e-06  max 0.00460426
+  -- Solve : 
+          min -1.62705e-06  max 0.00460283
+  -- Solve : 
+          min -1.63085e-06  max 0.0046014
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1647 , h  min 0.370002 , h max 73.9667
+     area =  40000 , M area = 724.072 , M area/( |Khat| nt) 1.01528
+     infiny-regulaty:  min 0.262863  max 2.28089
+     anisomax  10.8205, beta max = 1.36519 min  0.709938
+  --  mesh:  Nb of Triangles =   1647, Nb of Vertices 837
+  Mass = 1
+  -- Solve : 
+          min -1.60692e-06  max 0.00459994
+  -- Solve : 
+          min -1.60906e-06  max 0.0045985
+  -- Solve : 
+          min -1.61125e-06  max 0.00459707
+  -- Solve : 
+          min -1.61348e-06  max 0.00459562
+  -- Solve : 
+          min -1.61572e-06  max 0.00459418
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1653 , h  min 0.3679 , h max 76.1735
+     area =  40000 , M area = 722.776 , M area/( |Khat| nt) 1.00979
+     infiny-regulaty:  min 0.266677  max 2.26404
+     anisomax  11.0587, beta max = 1.40024 min  0.731673
+  --  mesh:  Nb of Triangles =   1653, Nb of Vertices 840
+  Mass = 1.00002
+  -- Solve : 
+          min -1.5119e-06  max 0.00459274
+  -- Solve : 
+          min -1.515e-06  max 0.00459121
+  -- Solve : 
+          min -1.51804e-06  max 0.00458976
+  -- Solve : 
+          min -1.521e-06  max 0.00458831
+  -- Solve : 
+          min -1.52388e-06  max 0.00458685
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1649 , h  min 0.368355 , h max 74.3488
+     area =  40000 , M area = 722.285 , M area/( |Khat| nt) 1.01155
+     infiny-regulaty:  min 0.324791  max 2.39526
+     anisomax  11.2918, beta max = 1.31272 min  0.735544
+  --  mesh:  Nb of Triangles =   1649, Nb of Vertices 838
+  Mass = 0.999988
+  -- Solve : 
+          min -1.53391e-06  max 0.00458543
+  -- Solve : 
+          min -1.53679e-06  max 0.00458402
+  -- Solve : 
+          min -1.53969e-06  max 0.00458256
+  -- Solve : 
+          min -1.54262e-06  max 0.00458109
+  -- Solve : 
+          min -1.54557e-06  max 0.00457962
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1649 , h  min 0.367822 , h max 74.2073
+     area =  40000 , M area = 722.373 , M area/( |Khat| nt) 1.01167
+     infiny-regulaty:  min 0.302733  max 2.25979
+     anisomax  11.4924, beta max = 1.32109 min  0.746064
+  --  mesh:  Nb of Triangles =   1649, Nb of Vertices 838
+  Mass = 0.999993
+  -- Solve : 
+          min -1.57843e-06  max 0.00457822
+  -- Solve : 
+          min -1.58212e-06  max 0.00457678
+  -- Solve : 
+          min -1.58582e-06  max 0.00457531
+  -- Solve : 
+          min -1.58953e-06  max 0.00457383
+  -- Solve : 
+          min -1.59326e-06  max 0.00457235
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1655 , h  min 0.366203 , h max 72.9953
+     area =  40000 , M area = 724.75 , M area/( |Khat| nt) 1.01132
+     infiny-regulaty:  min 0.346382  max 2.3954
+     anisomax  11.891, beta max = 1.3997 min  0.753327
+  --  mesh:  Nb of Triangles =   1655, Nb of Vertices 841
+  Mass = 0.999997
+  -- Solve : 
+          min -1.60041e-06  max 0.00457098
+  -- Solve : 
+          min -1.60385e-06  max 0.00456951
+  -- Solve : 
+          min -1.60735e-06  max 0.00456803
+  -- Solve : 
+          min -1.61088e-06  max 0.00456654
+  -- Solve : 
+          min -1.61445e-06  max 0.00456505
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1652 , h  min 0.366398 , h max 74.7912
+     area =  40000 , M area = 723.251 , M area/( |Khat| nt) 1.01106
+     infiny-regulaty:  min 0.350996  max 2.33014
+     anisomax  11.9855, beta max = 1.32814 min  0.725595
+  --  mesh:  Nb of Triangles =   1652, Nb of Vertices 839
+  Mass = 1.00001
+  -- Solve : 
+          min -1.61283e-06  max 0.00456368
+  -- Solve : 
+          min -1.61633e-06  max 0.00456216
+  -- Solve : 
+          min -1.61985e-06  max 0.00456067
+  -- Solve : 
+          min -1.62338e-06  max 0.00455917
+  -- Solve : 
+          min -1.6269e-06  max 0.00455768
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1658 , h  min 0.364501 , h max 74.2436
+     area =  40000 , M area = 724.966 , M area/( |Khat| nt) 1.00979
+     infiny-regulaty:  min 0.293506  max 2.33369
+     anisomax  10.151, beta max = 1.49076 min  0.703317
+  --  mesh:  Nb of Triangles =   1658, Nb of Vertices 842
+  Mass = 1
+  -- Solve : 
+          min -1.6177e-06  max 0.00455631
+  -- Solve : 
+          min -1.62155e-06  max 0.00455481
+  -- Solve : 
+          min -1.6254e-06  max 0.00455331
+  -- Solve : 
+          min -1.62922e-06  max 0.00455181
+  -- Solve : 
+          min -1.63303e-06  max 0.00455031
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1658 , h  min 0.364312 , h max 74.078
+     area =  40000 , M area = 723.463 , M area/( |Khat| nt) 1.0077
+     infiny-regulaty:  min 0.301212  max 2.36692
+     anisomax  10.307, beta max = 1.41259 min  0.691499
+  --  mesh:  Nb of Triangles =   1658, Nb of Vertices 842
+  Mass = 0.999997
+  -- Solve : 
+          min -1.62745e-06  max 0.00454898
+  -- Solve : 
+          min -1.63078e-06  max 0.00454749
+  -- Solve : 
+          min -1.63412e-06  max 0.00454603
+  -- Solve : 
+          min -1.63746e-06  max 0.00454465
+  -- Solve : 
+          min -1.6408e-06  max 0.00454327
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1661 , h  min 0.363539 , h max 74.1935
+     area =  40000 , M area = 725.782 , M area/( |Khat| nt) 1.0091
+     infiny-regulaty:  min 0.336001  max 2.42816
+     anisomax  10.5897, beta max = 1.40772 min  0.683576
+  --  mesh:  Nb of Triangles =   1661, Nb of Vertices 844
+  Mass = 0.999999
+  -- Solve : 
+          min -1.62749e-06  max 0.00454178
+  -- Solve : 
+          min -1.62984e-06  max 0.00454041
+  -- Solve : 
+          min -1.63227e-06  max 0.00453903
+  -- Solve : 
+          min -1.63476e-06  max 0.00453764
+  -- Solve : 
+          min -1.63731e-06  max 0.00453626
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1660 , h  min 0.362411 , h max 75.3823
+     area =  40000 , M area = 724.392 , M area/( |Khat| nt) 1.00778
+     infiny-regulaty:  min 0.239903  max 2.36639
+     anisomax  10.7697, beta max = 1.58997 min  0.686643
+  --  mesh:  Nb of Triangles =   1660, Nb of Vertices 843
+  Mass = 0.999993
+  -- Solve : 
+          min -1.62422e-06  max 0.00453474
+  -- Solve : 
+          min -1.62768e-06  max 0.00453339
+  -- Solve : 
+          min -1.63115e-06  max 0.004532
+  -- Solve : 
+          min -1.63462e-06  max 0.00453061
+  -- Solve : 
+          min -1.6381e-06  max 0.00452921
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1662 , h  min 0.360526 , h max 76.511
+     area =  40000 , M area = 726.557 , M area/( |Khat| nt) 1.00957
+     infiny-regulaty:  min 0.355702  max 2.29827
+     anisomax  10.1809, beta max = 1.37389 min  0.716097
+  --  mesh:  Nb of Triangles =   1662, Nb of Vertices 844
+  Mass = 1
+  -- Solve : 
+          min -1.62311e-06  max 0.00452776
+  -- Solve : 
+          min -1.62687e-06  max 0.00452637
+  -- Solve : 
+          min -1.63063e-06  max 0.00452497
+  -- Solve : 
+          min -1.63437e-06  max 0.00452357
+  -- Solve : 
+          min -1.63808e-06  max 0.00452217
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1667 , h  min 0.357729 , h max 73.435
+     area =  40000 , M area = 723.282 , M area/( |Khat| nt) 1.00201
+     infiny-regulaty:  min 0.248203  max 2.25164
+     anisomax  10.7864, beta max = 1.67507 min  0.721249
+  --  mesh:  Nb of Triangles =   1667, Nb of Vertices 847
+  Mass = 0.999998
+  -- Solve : 
+          min -1.62903e-06  max 0.00452074
+  -- Solve : 
+          min -1.63247e-06  max 0.00451935
+  -- Solve : 
+          min -1.6359e-06  max 0.00451794
+  -- Solve : 
+          min -1.63932e-06  max 0.00451654
+  -- Solve : 
+          min -1.64271e-06  max 0.00451513
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1669 , h  min 0.356962 , h max 75.8335
+     area =  40000 , M area = 723.018 , M area/( |Khat| nt) 1.00044
+     infiny-regulaty:  min 0.292411  max 2.18063
+     anisomax  11.3166, beta max = 1.47288 min  0.762096
+  --  mesh:  Nb of Triangles =   1669, Nb of Vertices 848
+  Mass = 0.999991
+  -- Solve : 
+          min -1.63742e-06  max 0.00451373
+  -- Solve : 
+          min -1.64031e-06  max 0.00451237
+  -- Solve : 
+          min -1.64321e-06  max 0.00451096
+  -- Solve : 
+          min -1.64614e-06  max 0.00450955
+  -- Solve : 
+          min -1.64907e-06  max 0.00450814
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1674 , h  min 0.354467 , h max 76.3148
+     area =  40000 , M area = 726.747 , M area/( |Khat| nt) 1.0026
+     infiny-regulaty:  min 0.341224  max 2.29946
+     anisomax  8.70376, beta max = 1.38925 min  0.754629
+  --  mesh:  Nb of Triangles =   1674, Nb of Vertices 851
+  Mass = 0.999999
+  -- Solve : 
+          min -1.59482e-06  max 0.00450673
+  -- Solve : 
+          min -1.59694e-06  max 0.00450533
+  -- Solve : 
+          min -1.59912e-06  max 0.00450392
+  -- Solve : 
+          min -1.60135e-06  max 0.00450251
+  -- Solve : 
+          min -1.60363e-06  max 0.0045011
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1674 , h  min 0.354798 , h max 76.7201
+     area =  40000 , M area = 726.386 , M area/( |Khat| nt) 1.0021
+     infiny-regulaty:  min 0.378254  max 2.24514
+     anisomax  10.954, beta max = 1.24071 min  0.730414
+  --  mesh:  Nb of Triangles =   1674, Nb of Vertices 850
+  Mass = 1
+  -- Solve : 
+          min -1.59517e-06  max 0.0044997
+  -- Solve : 
+          min -1.5996e-06  max 0.00449827
+  -- Solve : 
+          min -1.60392e-06  max 0.00449686
+  -- Solve : 
+          min -1.60811e-06  max 0.00449545
+  -- Solve : 
+          min -1.6122e-06  max 0.00449403
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1677 , h  min 0.353046 , h max 75.6494
+     area =  40000 , M area = 725.021 , M area/( |Khat| nt) 0.998429
+     infiny-regulaty:  min 0.355534  max 2.23128
+     anisomax  11.806, beta max = 1.26832 min  0.749109
+  --  mesh:  Nb of Triangles =   1677, Nb of Vertices 851
+  Mass = 1.00001
+  -- Solve : 
+          min -1.58938e-06  max 0.00449264
+  -- Solve : 
+          min -1.58935e-06  max 0.00449117
+  -- Solve : 
+          min -1.58968e-06  max 0.00448975
+  -- Solve : 
+          min -1.59028e-06  max 0.00448833
+  -- Solve : 
+          min -1.59115e-06  max 0.00448691
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1680 , h  min 0.353226 , h max 75.1025
+     area =  40000 , M area = 723.274 , M area/( |Khat| nt) 0.994243
+     infiny-regulaty:  min 0.347208  max 2.27093
+     anisomax  10.9317, beta max = 1.27119 min  0.738669
+  --  mesh:  Nb of Triangles =   1680, Nb of Vertices 853
+  Mass = 1
+  -- Solve : 
+          min -1.58041e-06  max 0.00448553
+  -- Solve : 
+          min -1.5842e-06  max 0.00448411
+  -- Solve : 
+          min -1.58793e-06  max 0.0044827
+  -- Solve : 
+          min -1.5916e-06  max 0.00448128
+  -- Solve : 
+          min -1.59521e-06  max 0.00447986
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1683 , h  min 0.351954 , h max 74.3467
+     area =  40000 , M area = 726.487 , M area/( |Khat| nt) 0.99688
+     infiny-regulaty:  min 0.394299  max 2.12967
+     anisomax  9.24707, beta max = 1.23304 min  0.772742
+  --  mesh:  Nb of Triangles =   1683, Nb of Vertices 855
+  Mass = 0.999994
+  -- Solve : 
+          min -1.58008e-06  max 0.00447848
+  -- Solve : 
+          min -1.58527e-06  max 0.00447709
+  -- Solve : 
+          min -1.59038e-06  max 0.00447567
+  -- Solve : 
+          min -1.59539e-06  max 0.00447425
+  -- Solve : 
+          min -1.60031e-06  max 0.00447283
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1683 , h  min 0.350688 , h max 73.1469
+     area =  40000 , M area = 723.635 , M area/( |Khat| nt) 0.992967
+     infiny-regulaty:  min 0.310941  max 2.09988
+     anisomax  9.72021, beta max = 1.28252 min  0.771906
+  --  mesh:  Nb of Triangles =   1683, Nb of Vertices 855
+  Mass = 0.999995
+  -- Solve : 
+          min -1.56057e-06  max 0.00447126
+  -- Solve : 
+          min -1.56582e-06  max 0.00446987
+  -- Solve : 
+          min -1.57091e-06  max 0.00446846
+  -- Solve : 
+          min -1.57585e-06  max 0.00446705
+  -- Solve : 
+          min -1.58064e-06  max 0.00446565
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1684 , h  min 0.3486 , h max 76.0584
+     area =  40000 , M area = 725.836 , M area/( |Khat| nt) 0.995395
+     infiny-regulaty:  min 0.324449  max 2.12567
+     anisomax  10.1309, beta max = 1.27774 min  0.748435
+  --  mesh:  Nb of Triangles =   1684, Nb of Vertices 855
+  Mass = 1
+  -- Solve : 
+          min -1.56123e-06  max 0.00446438
+  -- Solve : 
+          min -1.56626e-06  max 0.004463
+  -- Solve : 
+          min -1.57109e-06  max 0.00446164
+  -- Solve : 
+          min -1.57572e-06  max 0.00446028
+  -- Solve : 
+          min -1.58016e-06  max 0.00445892
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1681 , h  min 0.347208 , h max 73.3943
+     area =  40000 , M area = 725.504 , M area/( |Khat| nt) 0.996716
+     infiny-regulaty:  min 0.352989  max 2.26842
+     anisomax  10.197, beta max = 1.31804 min  0.726928
+  --  mesh:  Nb of Triangles =   1681, Nb of Vertices 854
+  Mass = 1
+  -- Solve : 
+          min -1.53315e-06  max 0.0044576
+  -- Solve : 
+          min -1.53784e-06  max 0.00445623
+  -- Solve : 
+          min -1.5423e-06  max 0.00445487
+  -- Solve : 
+          min -1.54652e-06  max 0.00445351
+  -- Solve : 
+          min -1.55051e-06  max 0.00445215
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1683 , h  min 0.345664 , h max 72.5264
+     area =  40000 , M area = 724.228 , M area/( |Khat| nt) 0.993781
+     infiny-regulaty:  min 0.32402  max 2.28408
+     anisomax  10.1927, beta max = 1.27957 min  0.786363
+  --  mesh:  Nb of Triangles =   1683, Nb of Vertices 855
+  Mass = 0.999985
+  -- Solve : 
+          min -1.49099e-06  max 0.00445083
+  -- Solve : 
+          min -1.4959e-06  max 0.00444953
+  -- Solve : 
+          min -1.5005e-06  max 0.00444817
+  -- Solve : 
+          min -1.50483e-06  max 0.00444681
+  -- Solve : 
+          min -1.5089e-06  max 0.00444545
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1680 , h  min 0.344077 , h max 75.0088
+     area =  40000 , M area = 724.059 , M area/( |Khat| nt) 0.995323
+     infiny-regulaty:  min 0.35738  max 2.18433
+     anisomax  10.5751, beta max = 1.28431 min  0.800357
+  --  mesh:  Nb of Triangles =   1680, Nb of Vertices 853
+  Mass = 1
+  -- Solve : 
+          min -1.37105e-06  max 0.00444414
+  -- Solve : 
+          min -1.3686e-06  max 0.00444276
+  -- Solve : 
+          min -1.36633e-06  max 0.0044414
+  -- Solve : 
+          min -1.36422e-06  max 0.00444004
+  -- Solve : 
+          min -1.36225e-06  max 0.00443868
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1679 , h  min 0.342907 , h max 73.3966
+     area =  40000 , M area = 726.198 , M area/( |Khat| nt) 0.998858
+     infiny-regulaty:  min 0.38201  max 2.44754
+     anisomax  10.5026, beta max = 1.29211 min  0.770654
+  --  mesh:  Nb of Triangles =   1679, Nb of Vertices 853
+  Mass = 0.999997
+  -- Solve : 
+          min -1.36749e-06  max 0.00443735
+  -- Solve : 
+          min -1.36526e-06  max 0.00443601
+  -- Solve : 
+          min -1.36313e-06  max 0.00443465
+  -- Solve : 
+          min -1.36109e-06  max 0.00443329
+  -- Solve : 
+          min -1.35913e-06  max 0.00443192
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1681 , h  min 0.334205 , h max 72.6586
+     area =  40000 , M area = 725.517 , M area/( |Khat| nt) 0.996733
+     infiny-regulaty:  min 0.379007  max 2.32109
+     anisomax  11.3419, beta max = 1.29548 min  0.777572
+  --  mesh:  Nb of Triangles =   1681, Nb of Vertices 854
+  Mass = 0.999998
+  -- Solve : 
+          min -1.39861e-06  max 0.0044306
+  -- Solve : 
+          min -1.39858e-06  max 0.00442925
+  -- Solve : 
+          min -1.39852e-06  max 0.00442789
+  -- Solve : 
+          min -1.39842e-06  max 0.00442653
+  -- Solve : 
+          min -1.39828e-06  max 0.00442517
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1679 , h  min 0.331284 , h max 72.5122
+     area =  40000 , M area = 724.346 , M area/( |Khat| nt) 0.996311
+     infiny-regulaty:  min 0.306534  max 2.15987
+     anisomax  8.9694, beta max = 1.30183 min  0.760359
+  --  mesh:  Nb of Triangles =   1679, Nb of Vertices 853
+  Mass = 0.999986
+  -- Solve : 
+          min -1.4193e-06  max 0.00442386
+  -- Solve : 
+          min -1.41893e-06  max 0.00442256
+  -- Solve : 
+          min -1.41852e-06  max 0.0044212
+  -- Solve : 
+          min -1.41809e-06  max 0.00441984
+  -- Solve : 
+          min -1.41764e-06  max 0.00441848
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1679 , h  min 0.330075 , h max 71.6586
+     area =  40000 , M area = 723.691 , M area/( |Khat| nt) 0.995409
+     infiny-regulaty:  min 0.298224  max 2.19142
+     anisomax  9.15346, beta max = 1.3045 min  0.774527
+  --  mesh:  Nb of Triangles =   1679, Nb of Vertices 853
+  Mass = 0.999991
+  -- Solve : 
+          min -1.41857e-06  max 0.00441717
+  -- Solve : 
+          min -1.41629e-06  max 0.00441584
+  -- Solve : 
+          min -1.41407e-06  max 0.00441448
+  -- Solve : 
+          min -1.41192e-06  max 0.00441312
+  -- Solve : 
+          min -1.40984e-06  max 0.00441176
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1682 , h  min 0.32905 , h max 73.4375
+     area =  40000 , M area = 725.942 , M area/( |Khat| nt) 0.996725
+     infiny-regulaty:  min 0.36044  max 2.51651
+     anisomax  9.17888, beta max = 1.37007 min  0.749115
+  --  mesh:  Nb of Triangles =   1682, Nb of Vertices 855
+  Mass = 0.999985
+  -- Solve : 
+          min -1.37951e-06  max 0.00441046
+  -- Solve : 
+          min -1.37905e-06  max 0.00440917
+  -- Solve : 
+          min -1.37852e-06  max 0.00440781
+  -- Solve : 
+          min -1.37794e-06  max 0.00440645
+  -- Solve : 
+          min -1.37731e-06  max 0.00440509
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1681 , h  min 0.328104 , h max 73.8947
+     area =  40000 , M area = 725.269 , M area/( |Khat| nt) 0.996394
+     infiny-regulaty:  min 0.39433  max 2.18362
+     anisomax  9.4095, beta max = 1.37266 min  0.77188
+  --  mesh:  Nb of Triangles =   1681, Nb of Vertices 854
+  Mass = 0.999981
+  -- Solve : 
+          min -1.37826e-06  max 0.00440377
+  -- Solve : 
+          min -1.37565e-06  max 0.0044025
+  -- Solve : 
+          min -1.37307e-06  max 0.00440114
+  -- Solve : 
+          min -1.37056e-06  max 0.00439978
+  -- Solve : 
+          min -1.3681e-06  max 0.00439842
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1679 , h  min 0.327158 , h max 72.5659
+     area =  40000 , M area = 722.963 , M area/( |Khat| nt) 0.994408
+     infiny-regulaty:  min 0.271911  max 2.30891
+     anisomax  9.64236, beta max = 1.54601 min  0.768356
+  --  mesh:  Nb of Triangles =   1679, Nb of Vertices 853
+  Mass = 0.99999
+  -- Solve : 
+          min -1.37366e-06  max 0.00439713
+  -- Solve : 
+          min -1.37052e-06  max 0.00439581
+  -- Solve : 
+          min -1.36742e-06  max 0.00439446
+  -- Solve : 
+          min -1.36439e-06  max 0.0043931
+  -- Solve : 
+          min -1.36141e-06  max 0.00439174
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1679 , h  min 0.326527 , h max 71.8774
+     area =  40000 , M area = 722.989 , M area/( |Khat| nt) 0.994444
+     infiny-regulaty:  min 0.28199  max 2.35797
+     anisomax  9.88545, beta max = 1.50346 min  0.768104
+  --  mesh:  Nb of Triangles =   1679, Nb of Vertices 853
+  Mass = 0.999994
+  -- Solve : 
+          min -1.36229e-06  max 0.00439048
+  -- Solve : 
+          min -1.35909e-06  max 0.00438915
+  -- Solve : 
+          min -1.3559e-06  max 0.00438779
+  -- Solve : 
+          min -1.35274e-06  max 0.00438643
+  -- Solve : 
+          min -1.3496e-06  max 0.00438508
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1683 , h  min 0.326048 , h max 72.8919
+     area =  40000 , M area = 722.866 , M area/( |Khat| nt) 0.991911
+     infiny-regulaty:  min 0.282475  max 2.15861
+     anisomax  10.0915, beta max = 1.50824 min  0.767573
+  --  mesh:  Nb of Triangles =   1683, Nb of Vertices 855
+  Mass = 0.999993
+  -- Solve : 
+          min -1.35404e-06  max 0.0043838
+  -- Solve : 
+          min -1.35228e-06  max 0.00438248
+  -- Solve : 
+          min -1.35044e-06  max 0.00438113
+  -- Solve : 
+          min -1.34852e-06  max 0.00437978
+  -- Solve : 
+          min -1.34654e-06  max 0.0043785
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1679 , h  min 0.325136 , h max 71.629
+     area =  40000 , M area = 724.391 , M area/( |Khat| nt) 0.996373
+     infiny-regulaty:  min 0.315138  max 2.28516
+     anisomax  9.74161, beta max = 1.3564 min  0.756841
+  --  mesh:  Nb of Triangles =   1679, Nb of Vertices 854
+  Mass = 0.999959
+  -- Solve : 
+          min -1.45111e-06  max 0.00437716
+  -- Solve : 
+          min -1.44632e-06  max 0.00437604
+  -- Solve : 
+          min -1.44165e-06  max 0.00437476
+  -- Solve : 
+          min -1.43714e-06  max 0.00437348
+  -- Solve : 
+          min -1.43275e-06  max 0.00437221
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1681 , h  min 0.324411 , h max 71.8447
+     area =  40000 , M area = 722.34 , M area/( |Khat| nt) 0.992369
+     infiny-regulaty:  min 0.277219  max 2.233
+     anisomax  9.77704, beta max = 1.43759 min  0.745801
+  --  mesh:  Nb of Triangles =   1681, Nb of Vertices 854
+  Mass = 0.999967
+  -- Solve : 
+          min -1.30973e-06  max 0.00437085
+  -- Solve : 
+          min -1.31311e-06  max 0.00436971
+  -- Solve : 
+          min -1.31612e-06  max 0.00436844
+  -- Solve : 
+          min -1.31882e-06  max 0.00436716
+  -- Solve : 
+          min -1.32124e-06  max 0.00436589
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1681 , h  min 0.323825 , h max 72.6255
+     area =  40000 , M area = 723.272 , M area/( |Khat| nt) 0.993649
+     infiny-regulaty:  min 0.370815  max 2.28982
+     anisomax  9.71131, beta max = 1.28456 min  0.724248
+  --  mesh:  Nb of Triangles =   1681, Nb of Vertices 854
+  Mass = 0.999984
+  -- Solve : 
+          min -1.39605e-06  max 0.00436452
+  -- Solve : 
+          min -1.38201e-06  max 0.00436332
+  -- Solve : 
+          min -1.36842e-06  max 0.00436204
+  -- Solve : 
+          min -1.36591e-06  max 0.00436077
+  -- Solve : 
+          min -1.37111e-06  max 0.00435949
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1681 , h  min 0.323409 , h max 73.2578
+     area =  40000 , M area = 724.203 , M area/( |Khat| nt) 0.994929
+     infiny-regulaty:  min 0.290546  max 2.28766
+     anisomax  9.90989, beta max = 1.47527 min  0.727955
+  --  mesh:  Nb of Triangles =   1681, Nb of Vertices 854
+  Mass = 0.99998
+  -- Solve : 
+          min -1.42486e-06  max 0.00435813
+  -- Solve : 
+          min -1.40983e-06  max 0.00435694
+  -- Solve : 
+          min -1.39555e-06  max 0.00435567
+  -- Solve : 
+          min -1.39601e-06  max 0.00435439
+  -- Solve : 
+          min -1.40016e-06  max 0.00435312
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1684 , h  min 0.322507 , h max 74.1285
+     area =  40000 , M area = 725.039 , M area/( |Khat| nt) 0.994303
+     infiny-regulaty:  min 0.377392  max 2.31434
+     anisomax  10.1006, beta max = 1.29463 min  0.726743
+  --  mesh:  Nb of Triangles =   1684, Nb of Vertices 856
+  Mass = 0.999993
+  -- Solve : 
+          min -1.41046e-06  max 0.00435179
+  -- Solve : 
+          min -1.41435e-06  max 0.00435055
+  -- Solve : 
+          min -1.41792e-06  max 0.00434928
+  -- Solve : 
+          min -1.42117e-06  max 0.004348
+  -- Solve : 
+          min -1.42414e-06  max 0.00434673
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1686 , h  min 0.321563 , h max 74.5075
+     area =  40000 , M area = 724.897 , M area/( |Khat| nt) 0.992929
+     infiny-regulaty:  min 0.294073  max 2.54233
+     anisomax  10.3376, beta max = 1.33108 min  0.724913
+  --  mesh:  Nb of Triangles =   1686, Nb of Vertices 857
+  Mass = 0.99999
+  -- Solve : 
+          min -1.41806e-06  max 0.0043454
+  -- Solve : 
+          min -1.4207e-06  max 0.00434417
+  -- Solve : 
+          min -1.42311e-06  max 0.0043429
+  -- Solve : 
+          min -1.42529e-06  max 0.00434163
+  -- Solve : 
+          min -1.42727e-06  max 0.00434036
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1688 , h  min 0.320965 , h max 75.0629
+     area =  40000 , M area = 726.454 , M area/( |Khat| nt) 0.993883
+     infiny-regulaty:  min 0.387436  max 2.61011
+     anisomax  10.5096, beta max = 1.25644 min  0.716234
+  --  mesh:  Nb of Triangles =   1688, Nb of Vertices 858
+  Mass = 0.999995
+  -- Solve : 
+          min -1.45609e-06  max 0.00433901
+  -- Solve : 
+          min -1.45104e-06  max 0.00433776
+  -- Solve : 
+          min -1.4557e-06  max 0.0043365
+  -- Solve : 
+          min -1.45996e-06  max 0.00433523
+  -- Solve : 
+          min -1.46383e-06  max 0.00433396
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1689 , h  min 0.319829 , h max 73.5105
+     area =  40000 , M area = 725.313 , M area/( |Khat| nt) 0.991734
+     infiny-regulaty:  min 0.246662  max 2.57388
+     anisomax  10.7742, beta max = 1.48852 min  0.729164
+  --  mesh:  Nb of Triangles =   1689, Nb of Vertices 858
+  Mass = 0.999982
+  -- Solve : 
+          min -1.43562e-06  max 0.00433261
+  -- Solve : 
+          min -1.43244e-06  max 0.00433142
+  -- Solve : 
+          min -1.4293e-06  max 0.00433015
+  -- Solve : 
+          min -1.42621e-06  max 0.00432889
+  -- Solve : 
+          min -1.42317e-06  max 0.00432762
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1685 , h  min 0.319307 , h max 73.3908
+     area =  40000 , M area = 727.349 , M area/( |Khat| nt) 0.996878
+     infiny-regulaty:  min 0.383014  max 2.60969
+     anisomax  10.718, beta max = 1.27097 min  0.718179
+  --  mesh:  Nb of Triangles =   1685, Nb of Vertices 856
+  Mass = 0.999999
+  -- Solve : 
+          min -1.41602e-06  max 0.0043263
+  -- Solve : 
+          min -1.4129e-06  max 0.00432504
+  -- Solve : 
+          min -1.40977e-06  max 0.00432378
+  -- Solve : 
+          min -1.40663e-06  max 0.00432251
+  -- Solve : 
+          min -1.4035e-06  max 0.00432125
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1688 , h  min 0.319251 , h max 74.2412
+     area =  40000 , M area = 725.404 , M area/( |Khat| nt) 0.992445
+     infiny-regulaty:  min 0.289813  max 2.62849
+     anisomax  11.0622, beta max = 1.3037 min  0.734403
+  --  mesh:  Nb of Triangles =   1688, Nb of Vertices 858
+  Mass = 0.999988
+  -- Solve : 
+          min -1.27872e-06  max 0.00431993
+  -- Solve : 
+          min -1.27146e-06  max 0.00431872
+  -- Solve : 
+          min -1.26441e-06  max 0.00431746
+  -- Solve : 
+          min -1.26104e-06  max 0.0043162
+  -- Solve : 
+          min -1.26356e-06  max 0.00431494
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1689 , h  min 0.318936 , h max 73.7484
+     area =  40000 , M area = 725.129 , M area/( |Khat| nt) 0.991482
+     infiny-regulaty:  min 0.282235  max 2.58975
+     anisomax  11.4373, beta max = 1.28229 min  0.718491
+  --  mesh:  Nb of Triangles =   1689, Nb of Vertices 858
+  Mass = 0.999992
+  -- Solve : 
+          min -1.3094e-06  max 0.00431361
+  -- Solve : 
+          min -1.3123e-06  max 0.00431239
+  -- Solve : 
+          min -1.31517e-06  max 0.00431113
+  -- Solve : 
+          min -1.318e-06  max 0.00430988
+  -- Solve : 
+          min -1.32079e-06  max 0.00430862
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1690 , h  min 0.318789 , h max 74.8946
+     area =  40000 , M area = 725.452 , M area/( |Khat| nt) 0.991337
+     infiny-regulaty:  min 0.288213  max 2.6147
+     anisomax  11.7201, beta max = 1.28243 min  0.708022
+  --  mesh:  Nb of Triangles =   1690, Nb of Vertices 858
+  Mass = 0.999992
+  -- Solve : 
+          min -1.34875e-06  max 0.00430725
+  -- Solve : 
+          min -1.35155e-06  max 0.00430603
+  -- Solve : 
+          min -1.35427e-06  max 0.00430478
+  -- Solve : 
+          min -1.35693e-06  max 0.00430353
+  -- Solve : 
+          min -1.35952e-06  max 0.00430227
+  number of required edges : 0
+  -- adaptmesh Regulary:  Nb triangles 1691 , h  min 0.318331 , h max 74.4558
+     area =  40000 , M area = 726.824 , M area/( |Khat| nt) 0.992625
+     infiny-regulaty:  min 0.41499  max 2.63171
+     anisomax  11.5634, beta max = 1.28677 min  0.702695
+  --  mesh:  Nb of Triangles =   1691, Nb of Vertices 859
+  Mass = 0.99999
+
+FOKKER:
+  Normal end of execution.
+times: compile 0.007687s, execution 107.967s,  mpirank:0
+CheckPtr:  Warning memory leak with malloc = -6368 
+  CodeAlloc : nb ptr  2950,  size :352368 mpirank: 0
+Ok: Normal End
