@@ -44,8 +44,8 @@ varf op(u1,u2) =- int2d(Th)((dx(u1)*dx(u2)+dy(u1)*dy(u2))*rho)
      	       	+ on(1,2,3,4,u1=0) ; 	  //BC
 
 varf b([u1],[u2]) = int2d(Th)( u1*u2*rho );	  //no BC (!)
-matrix OP= op(Vh,Vh, solver=UMFPACK/*, factorize=1*/);
-matrix B= b(Vh,Vh,/*solver=CG,*/eps=1e-20);		  
+matrix OP= op(Vh,Vh, solver=LU/*UMFPACK*/, factorize=1);
+matrix B= b(Vh,Vh,solver=CG,eps=1e-20);		  
 
 real[int] ev(nev);		//to store eigenvalue
 real[int] iev(nev);		//to store imaginary part of eigenvalues
@@ -58,13 +58,11 @@ int k=EigenValue(OP,B,sym=false,sigma=sigma,value=ev,ivalue=iev, vector=eV,
 //print results
 for (int i=0;i<k;i++){
     u1=eV[i];
-    real gg = int2d(Th)(dx(u1)*dx(u1) + dy(u1)*dy(u1));
-    real mm= int2d(Th)(u1*u1) ;
 
     cout << i+1 << "th eigenvalue = "		
     	   << ev[i] << "+i*(" << iev[i] << ")"	//eigenvalue
 	   << endl;
-    cout << "---err on real part = "
+    cout << "---error = "
     	 << - int2d(Th)((dx(u1)*dx(u1)+dy(u1)*dy(u1))*rho)  
      	    - int2d(Th)((dx(u1)*dxrho+dy(u1)*dyrho)*u1)
      	    + int2d(Th)((Bx1*dx(u1)+Bx2*dy(u1))*u1*rho)
@@ -72,19 +70,5 @@ for (int i=0;i<k;i++){
      	    - ev[i] * int2d(Th)( u1*u1*rho )
 	 << endl;
 
-    if(abs(iev[i]) > 1.e-12){
-        i = i+1;
-	cout << i+1 << "th eigenvalue: "		
-    	<< ev[i] << "+i*(" << iev[i] << ")"	//eigenvalue
-	<< endl;
-	u1 = eV[i];
-    	cout << "---err on imaginary part = "
-	     << - int2d(Th)((dx(u1)*dx(u1)+dy(u1)*dy(u1))*rho)  
-     	    - int2d(Th)((dx(u1)*dxrho+dy(u1)*dyrho)*u1)
-     	    + int2d(Th)((Bx1*dx(u1)+Bx2*dy(u1))*u1*rho)
-	    + int2d(Th)(divB*u1*u1*rho)			     
-     	    - iev[i] * int2d(Th)( u1*u1*rho )
-	    << endl;
-    } 
-    plot(eV[i],cmm= (i+1) + "th eigenvalue=" + ev[i] + "+i" + iev[i] ,wait=1, dim=2,fill=1, value=1);
+     plot(eV[i],cmm= (i+1) + "th eigenvalue=" + ev[i] + "+i" + iev[i] ,wait=1, dim=2,fill=1, value=1);
 }
