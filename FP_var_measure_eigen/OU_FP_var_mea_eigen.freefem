@@ -17,10 +17,11 @@
 
 // INPUT: \rho-div-free perturbation b
 // b = 0;
-func b1 = 0.;
-func b2 = 0.;
-func dxb1 = 0.;
-func dyb2 = 0.;
+real a = 0.;
+func b1 = a * dyV;
+func b2 = -a * dxV;
+func dxb1 = 0;
+func dyb2 = 0;
 
 //invariant measere (not to be changed)
  func rho = exp(-V(x,y));

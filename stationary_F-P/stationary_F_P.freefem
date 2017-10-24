@@ -74,5 +74,3 @@ plot(Th, ph1,fill=1,wait=1,value=1, dim=3);
      	       + int2d(Th)((dxV*dx(ph1)+dyV*dy(ph1))*ph1)
 	       + int2d(Th)(lapV*ph1*ph1)
       << endl;
- cout << "lambda = " << sol[Xh1.ndof] << endl;
- cout << "b[5] = " << g[40] << endl;
