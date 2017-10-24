@@ -11,18 +11,20 @@ mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);
 //border Gamma(t=0,2*pi) { x = r * cos(t); y = r * sin(t); }
 //mesh Th = buildmesh(Gamma(res));
 
-//def. S and func.s of S
-real s11=1., s12=0.;
-real s21=0., s22=-2.;
-real lapl = s11+s22;
-func v1 = s11*x+s12*y;
-func v2 = s21*x+s22*y;
+
+// INPUT: $V, \Nabla (V), \Delta (V)$
+ real s11=1, s12=0.;
+ real s21=0., s22=2; 
+ func V = 0.5*(s11*x*x + (s12+s21)*x*y +s22*y*y);
+ func dxV = +s11*x+0.5*(s12+s21)*y;
+ func dyV = +s22*y+0.5*(s12+s21)*x;
+ func lapV = s11 + s22;
 
 varf a(p, q) = - int2d(Th)(dx(p)*dx(q)+dy(p)*dy(q))		 //diffusion
-     	      	       + int2d(Th)((v1*dx(p)+v2*dy(p))*q)   	 //advection
-	      	       + int2d(Th)(lapl*p*q)			 //reaction
-//		       - int1d(Th,1,2,3,4)(p*q*(v1*N.x+v2*N.y)); //Robin BC
-		       + on(1,2,3,4, p=0);			 //Dirichlet BD
+     	       + int2d(Th)((dxV*dx(p)+dyV*dy(p))*q)   		 //advection
+	       + int2d(Th)(lapV*p*q)				 //reaction
+//	       - int1d(Th,1,2,3,4)(p*q*(dxV*N.x+dyV*N.y));	 //Robin BC
+	       + on(1,2,3,4, p=0);			   	 //Dirichlet BD
 
 
 /*
@@ -69,8 +71,8 @@ plot(Th, ph1,fill=1,wait=1,value=1, dim=3);
 //error
  cout << " error = "
       <<  - int2d(Th)(dx(ph1)*dx(ph1)+dy(ph1)*dy(ph1))
-      	  + int2d(Th)((v1*dx(ph1)+v2*dy(ph1))*ph1)
-	  + int2d(Th)(lapl*ph1*ph1)
+     	       + int2d(Th)((dxV*dx(ph1)+dyV*dy(ph1))*ph1)
+	       + int2d(Th)(lapV*ph1*ph1)
       << endl;
  cout << "lambda = " << sol[Xh1.ndof] << endl;
  cout << "b[5] = " << g[40] << endl;
