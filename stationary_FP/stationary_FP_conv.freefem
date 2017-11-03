@@ -1,0 +1,95 @@
+
+//verbosity = 10;
+
+
+real r =5;
+real xlow=-r,xhigh=r;
+real ylow=-r,yhigh=r;
+
+// INPUT: $V, \Nabla (V), \Delta (V)$
+ real s11=1, s12=0.;
+ real s21=0., s22=2; 
+ func V = 0.5*(s11*x*x + (s12+s21)*x*y +s22*y*y);
+ func dxV = +s11*x+0.5*(s12+s21)*y;
+ func dyV = +s22*y+0.5*(s12+s21)*x;
+ func lapV = s11 + s22;
+
+mesh Th;
+varf a(p, q) = - int2d(Th)(dx(p)*dx(q)+dy(p)*dy(q))		 //diffusion
+     	       + int2d(Th)((dxV*dx(p)+dyV*dy(p))*q)   		 //advection
+	       + int2d(Th)(lapV*p*q)				 //reaction
+//	       - int1d(Th,1,2,3,4)(p*q*(dxV*N.x+dyV*N.y));	 //Robin BC
+	       + on(1,2,3,4, p=0);			   	 //Dirichlet BD
+
+
+// integral constraint on solution
+//varf for integral constraint
+varf varG(p,q) = int2d(Th)(q);
+
+//reference solution
+
+//square mesh
+int res =512;
+int n=res, m=res;
+ Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);
+fespace XhRef(Th, P1);
+//assembling matrix
+real[int] g = varG(0,XhRef);
+matrix A = a(XhRef, XhRef);
+matrix M =[[A, g],
+       	   [g', 0]];
+//assembling rhs
+real[int] rhs(XhRef.ndof+1);
+rhs = 0.;
+rhs[XhRef.ndof] = 1.;
+//solving
+set(M,solver=UMFPACK);
+real[int] solRefVec = M^-1*rhs;
+real[int] phRefVec = solRefVec(0:XhRef.ndof-1);
+XhRef phRef;
+phRef[] = phRefVec;
+
+
+int resNum =8;
+for (int i=4; i<9; i++){
+
+//numerical solution
+resNum = resNum*2;
+int nN=resNum, mN=resNum;
+mesh ThN=square(nN,mN,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);
+fespace Xh1(ThN,P1);
+//assembling matrix
+real[int] gN = varG(0,Xh1);
+
+varf aNum(p, q) = - int2d(ThN)(dx(p)*dx(q)+dy(p)*dy(q))		 //diffusion
+     	       + int2d(ThN)((dxV*dx(p)+dyV*dy(p))*q)   		 //advection
+	       + int2d(ThN)(lapV*p*q)				 //reaction
+	       + on(1,2,3,4, p=0);
+	       
+matrix AN = aNum(Xh1, Xh1);
+matrix MN =[[AN, gN],
+       	   [gN', 0]];
+//assembling rhs
+real[int] rhsN(Xh1.ndof+1);
+rhsN = 0.;
+rhsN[Xh1.ndof] = 1.;
+//solving
+set(MN,solver=UMFPACK);
+real[int] solVec = MN^-1*rhsN;
+real[int] phVec = solVec(0:Xh1.ndof-1);
+Xh1 ph;
+ph[] = phVec;
+
+
+//error
+XhRef phInt;
+phInt = ph;
+XhRef errFn = phInt - phRef;
+real err = sqrt(int2d(Th)(errFn*errFn));
+//cout << "***** " << err << endl;
+
+ofstream f("convergence.out",append);
+f << resNum << " ";
+int prec = f.precision(16);
+f << err << endl;
+}
