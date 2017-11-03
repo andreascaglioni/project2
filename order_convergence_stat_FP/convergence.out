@@ -1,0 +1,6 @@
+# numerical error of stattionary FP FE solver with integral constraint fr different mesh resolutions
+16 0.02648485976584304
+32 0.007217767105936836
+64 0.001832842550137037
+128 0.0004424192320062608
+256 9.180890581274333e-05
