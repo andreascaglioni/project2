@@ -1,0 +1,77 @@
+verbosity = 1;
+
+real r =5;
+real xlow=-r,xhigh=r;
+real ylow=-r,yhigh=r;
+
+//square mesh
+int res = 100;
+int n=res, m=res;
+mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);
+
+// time advancement parameters
+real dt = 0.01;
+int Nit = 200;
+
+// INPUT: $V, \Nabla (V), \Delta (V)$
+//quadratic potentia
+ real s11=1, s12=0.;
+ real s21=0., s22=2; 
+ func V = 0.5*(s11*x*x + (s12+s21)*x*y +s22*y*y);
+ func dxV = s11*x+0.5*(s12+s21)*y;
+ func dyV = s22*y+0.5*(s12+s21)*x;
+ func lapV = s11 + s22;
+
+//Ornstein-Uhlenbech
+/*
+  func V = 0.25*(x*x-1.)*(x*x-1.)+0.5*y*y;
+ func dxV = x*(x*x-1.) + 0.*y;
+ func dyV = y + 0.*x + 0.*y;
+ func lapV = 3.*x*x + 0.*y;
+*/
+
+// inverse of stationary measure
+ func rho = exp(V(x,y));
+
+fespace Vh1(Th,P1);   
+Vh1 ph, qh, pold;
+
+//initia condition
+pold = (x-r)*(x+r)*(y-r)*(y+r);
+real mass = int2d(Th)(pold);
+pold = pold/mass;
+
+varf a(p, q) =	 int2d(Th)(p*q/dt)				 // time dependence
+     	       - int2d(Th)(convect([dxV, dyV], dt, pold)*q/dt)	 //determines second term of time andvancing and advective term 
+//     	       - int2d(Th)(pold*q/dt)
+//     	       - int2d(Th)((dxV*dx(p)+dyV*dy(p))*q)   		 //advection
+	       + int2d(Th)(dx(p)*dx(q)+dy(p)*dy(q))		 //diffusion
+	       - int2d(Th)(lapV*p*q)				 //reaction
+	       + on(1,2,3,4, p=0);			   	 //Dirichlet BD
+
+plot(pold, fill=1, value=1, dim=3, wait=1);
+
+problem FP(ph, qh) = a;
+
+Vh1[int] sol(Nit);
+int it;
+for (it=0; it<Nit; it++) {
+    FP;
+    mass = int2d(Th)(ph);
+    ph = ph/mass;
+    pold = ph;
+    sol[it] = ph;
+    plot(ph, fill=1, value=1, dim=3, wait=0);
+}
+
+//convergence to stationary solution
+real[int] L2err(Nit);
+Vh1 rhoh = rho;
+ofstream write("convergence_stationary_state.out", append);
+write << "[" ;
+int prec = write.precision(16);
+for (it=0; it<Nit; it++) {
+    L2err[it] = (int2d(Th)((sol[it]-sol[Nit-1])*(sol[it]-sol[Nit-1])*rhoh))^0.5;
+    write << L2err[it] << ", ";
+}
+write << "]" << endl;;

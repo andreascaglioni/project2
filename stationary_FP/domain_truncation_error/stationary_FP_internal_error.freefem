@@ -1,0 +1,102 @@
+//verbosity = 10;
+
+for(int i=0;i<ARGV.n;++i)
+   {
+     cout << ARGV[i] << endl;
+   }
+
+real r =5;
+real xlow=-r,xhigh=r;
+real ylow=-r,yhigh=r;
+
+//square mesh
+int res = atoi(ARGV[2]);
+int n=res, m=res;
+mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);
+
+//alternative: circular mesh
+//border Gamma(t=0,2*pi) { x = r * cos(t); y = r * sin(t); }
+//mesh Th = buildmesh(Gamma(res));
+
+
+// INPUT: $V, \Nabla (V), \Delta (V)$
+ real s11=1, s12=0.;
+ real s21=0., s22=2; 
+ func V = 0.5*(s11*x*x + (s12+s21)*x*y +s22*y*y);
+ func dxV = +s11*x+0.5*(s12+s21)*y;
+ func dyV = +s22*y+0.5*(s12+s21)*x;
+ func lapV = s11 + s22;
+
+varf a(p, q) = - int2d(Th)(dx(p)*dx(q)+dy(p)*dy(q))		 //diffusion
+     	       + int2d(Th)((dxV*dx(p)+dyV*dy(p))*q)   		 //advection
+	       + int2d(Th)(lapV*p*q)				 //reaction
+//	       - int1d(Th,1,2,3,4)(p*q*(dxV*N.x+dyV*N.y));	 //Robin BC
+	       + on(1,2,3,4, p=0);			   	 //Dirichlet BD
+
+
+/*
+//non-constrained problem
+fespace Vh1(Th,P1);   
+Vh1 uh1, vh1;
+problem FP(uh1,vh1) = a;
+FP;
+plot(uh1, fill=1, value=1, dim=3);
+*/
+
+// integral constraint on solution
+//varf for integral constraint
+varf varG(p,q) = int2d(Th)(q);
+//varf varG2(p,q) = int2d(Th)(q*0.1);
+
+//*** P1 elements:
+fespace Xh1(Th,P1);
+Xh1 ph1;
+
+//assembling matrix
+real[int] g = varG(0,Xh1);
+//real[int] g2 = varG2(0,Xh1);
+real[int] g2 = g;
+matrix A = a(Xh1, Xh1);
+matrix M =[[A, g2],
+       	   [g', 0]];
+
+//assembling rhs
+real[int] rhs(Xh1.ndof+1);
+rhs = 0.;
+rhs[Xh1.ndof] = 1.;
+
+//solving
+set(M,solver=UMFPACK);
+real[int] sol = M^-1*rhs;
+real[int] ph = sol(0:Xh1.ndof-1);
+
+
+//plotting
+ph1[] = ph;
+//plot(Th,wait=1);
+//plot(Th, ph1,fill=1,wait=1,value=1, dim=2/*, ps="plot_sol.eps"*/);
+
+//A posteriori error
+ cout << " a posteriori error = "
+      <<  - int2d(Th)(dx(ph1)*dx(ph1)+dy(ph1)*dy(ph1))
+     	  + int2d(Th)((dxV*dx(ph1)+dyV*dy(ph1))*ph1)
+	  + int2d(Th)(lapV*ph1*ph1)
+      << endl;
+
+// exact solution over R^d
+real PI = 3.141592653589793;
+real detS = s11*s22-s12*s21;
+real sInv11 = s22/detS, sInv12 = -s12/detS;
+real sInv21 = -s21/detS, sInv22 = s11/detS;
+real detSInv = 1./detS;
+func exact = 1/(2*PI*sqrt(detSInv))*exp(-0.5*(s11*x*x+x*y*(s12+s21)+s22*y*y));
+Xh1 exactInt = exact;
+real intSolExa = int2d(Th)(exactInt);
+//cout << "************* integral: " << intSolExa << endl;
+real L2Err = sqrt(int2d(Th)((ph1-exactInt)*(ph1-exactInt)));
+
+ofstream write("internal_error.out",append);
+write.precision(16);
+write << res << " " << L2Err <<endl;
+
+//cout << "error internal " << L2Err <<endl;

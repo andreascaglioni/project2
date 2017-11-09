@@ -1,3 +1,0 @@
-/home/andrea/Documents/semester_project_2_code/golden_search_numerical_recipes/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/andrea/Documents/semester_project_2_code/golden_search_numerical_recipes/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/andrea/Documents/semester_project_2_code/golden_search_numerical_recipes/cmake-build-debug/CMakeFiles/golden_search_numerical_recipes.dir

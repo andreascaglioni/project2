@@ -61,4 +61,6 @@ Vh[int] eV(nev);		//to store eigenvectors
 //resolution of dicrete eigenvalue problem
 int k=EigenValue(OP,B,sym=false,sigma=sigma,value=ev,ivalue=iev, vector=eV,
 		 tol=1e-5,maxit=0,ncv=0);
-cout << ev[0];
+
+string tag = "###BEGIN_RESULT###";
+cout << tag << ev[0]<< endl;

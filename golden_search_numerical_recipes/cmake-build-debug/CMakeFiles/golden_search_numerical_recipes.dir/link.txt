@@ -1,1 +1,0 @@
-/usr/bin/c++  -g   CMakeFiles/golden_search_numerical_recipes.dir/main.cpp.o  -o golden_search_numerical_recipes 

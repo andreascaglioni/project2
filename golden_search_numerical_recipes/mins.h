@@ -41,14 +41,14 @@ struct Bracketmethod {
                     bx=u;
                     fa=fb;
                     fb=fu;
-                    //std::cout << ax << " < " << bx << " < " << cx << std::endl;
-                    //std::cout << fa << " , " << fb << " , " << fc << "\n" << std::endl;
+                    std::cout << ax << " < " << bx << " < " << cx << std::endl;
+                    std::cout << fa << " , " << fb << " , " << fc << "\n" << std::endl;
                     return;
                 } else if (fu > fb) {
                     cx=u;
                     fc=fu;
-                    //std::cout << ax << " < " << bx << " < " << cx << std::endl;
-                    //std::cout << fa << " , " << fb << " , " << fc << "\n" << std::endl;
+                    std::cout << ax << " < " << bx << " < " << cx << std::endl;
+                    std::cout << fa << " , " << fb << " , " << fc << "\n" << std::endl;
                     return;
                 }
                 u=cx+GOLD*(cx-bx);
@@ -69,8 +69,8 @@ struct Bracketmethod {
             shft3(ax,bx,cx,u);
             shft3(fa,fb,fc,fu);
 
-            //std::cout << ax << " < " << bx << " < " << cx << std::endl;
-            //std::cout << fa << " , " << fb << " , " << fc << "\n" << std::endl;
+            std::cout << ax << " < " << bx << " < " << cx << std::endl;
+            std::cout << fa << " , " << fb << " , " << fc << "\n" << std::endl;
         }
     }
     inline void shft2(Doub &a, Doub &b, const Doub c)
