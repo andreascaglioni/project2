@@ -43,7 +43,7 @@ struct Funcd {
             return -(sin(-5.)+cos(2.*-5.)+ 1./x*sin(3.*-5.));
     }*/
     Doub operator() (const Doub x) {
-        std::cout << "  evaluating for perturbation " << x  << "..." << std::endl;
+        //std::cout << "  evaluating for perturbation " << x  << "..." << std::endl;
         if(abs(x)>1)
             return 0.;
         //prepare freefem input arguments
@@ -66,12 +66,12 @@ int main() {
 
     // cheating: compute some results to have an idea of there the maximum is
     Funcd f;
-    /*Doub a = -1.;
-    while(a < 0.5){
-     std::cout << f(a) << std::endl;
+    Doub a = -1.;
+    while(a <= 1.){
+     std::cout << f(a) << " ";// << std::endl;
         a = a + 0.05;
-    }*/
-
+    }
+/*
     Golden golden;
 
     golden.bracket(-0.35, 0.35, f);
@@ -80,6 +80,6 @@ int main() {
     std::cout << "main" << std::endl;
     std::cout << golden.ax << " < " << golden.bx << " < " << golden.cx << std::endl;
     std::cout << golden.fa << " , " << golden.fb << " , " << golden.fc << std::endl;
-    std::cout << xmin << " " << golden.fmin << std::endl;
+    std::cout << xmin << " " << golden.fmin << std::endl;*/
     return 0;
 }

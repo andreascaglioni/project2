@@ -82,5 +82,5 @@ for (int i=0;i<k;i++){
 }
 */
 string tag = "###BEGIN_RESULT###";
-cout << tag << ev[1] << endl;
-//cout << tag << sqrt(ev[1]*ev[1]+iev[1]*iev[1]) << endl;
+//cout << tag << ev[1] << endl;
+cout << tag << sqrt(ev[1]*ev[1]+iev[1]*iev[1]) << endl;
