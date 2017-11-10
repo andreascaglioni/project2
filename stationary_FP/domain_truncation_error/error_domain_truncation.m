@@ -22,6 +22,8 @@ end
 internal_error = [0.02002438194206024; 0.006210732629485956; 0.001496091113411886; 0.0002751045508243029; 3.844472804500194e-05;  6.030059627944629e-06];
 total_error =  external_error+internal_error;
 loglog(a, internal_error, '.', a, external_error,'.', a, total_error, '.' , 'markersize', 20);
+xlabel 'domain size';
+ylabel 'error' 
 grid on;
 legend ('internal', 'external', 'total');
 
