@@ -11,7 +11,7 @@ real xlow=-r,xhigh=r;
 real ylow=-r,yhigh=r;
 
 //square mesh
-int res = atoi(ARGV[2]);
+int res = atoi(ARGV[5]);
 int n=res, m=res;
 mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);
 
@@ -72,13 +72,14 @@ real[int] sol = M^-1*rhs;
 real[int] ph = sol(0:Xh1.ndof-1);
 
 //plotting
+cout << "*** lagrange multiplier" << sol(Xh1.ndof) << endl;
 ph1[] = ph;
-plot(Th,wait=1);
-plot(Th, ph1,fill=1,wait=1,value=1, dim=2/*, ps="plot_sol.eps"*/);
+//plot(Th,wait=1);
+//plot(Th, ph1,fill=1,wait=1,value=1, dim=2/*, ps="plot_sol.eps"*/);
 
 //error
- cout << " a posteriori error = "
+/* cout << " a posteriori error = "
       <<  - int2d(Th)(dx(ph1)*dx(ph1)+dy(ph1)*dy(ph1))
      	       + int2d(Th)((dxV*dx(ph1)+dyV*dy(ph1))*ph1)
 	       + int2d(Th)(lapV*ph1*ph1)
-      << endl;
+      << endl;*/
