@@ -1,15 +1,18 @@
 
 //verbosity = 10;
 
+
 real r =5;
 real xlow=-r,xhigh=r;
 real ylow=-r,yhigh=r;
 
 // INPUT: $V, \Nabla (V), \Delta (V)$
-  func V = 0.25*(x*x-1.)*(x*x-1.)+0.5*y*y;
- func dxV = x*(x*x-1.) + 0.*y;
- func dyV = y + 0.*x + 0.*y;
- func lapV = 3.*x*x + 0.*y;
+ real s11=1, s12=0.;
+ real s21=0., s22=2; 
+ func V = 0.5*(s11*x*x + (s12+s21)*x*y +s22*y*y);
+ func dxV = +s11*x+0.5*(s12+s21)*y;
+ func dyV = +s22*y+0.5*(s12+s21)*x;
+ func lapV = s11 + s22;
 
 mesh Th;
 varf a(p, q) = - int2d(Th)(dx(p)*dx(q)+dy(p)*dy(q))		 //diffusion
