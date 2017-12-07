@@ -3,8 +3,8 @@
 
 //************************
 //ALWAYS KEEP THIS WHEN RUNNING FROM C++
-verbosity = 0;
-string astring = ARGV[5];
+//verbosity = 10;
+string astring = ARGV[2];
 //************************
 
 real a = atof(astring);
@@ -18,7 +18,7 @@ for(int i=0;i<ARGV.n;++i)
  real r =5;
  real xlow=-r,xhigh=r;
  real ylow=-r,yhigh=r;
- int res = 200;
+ int res = 400;
 
 //problem data: potential V and perturbation b
 
@@ -73,7 +73,7 @@ int k=EigenValue(OP,B,sym=false,sigma=sigma,value=ev,ivalue=iev, vector=eV,
 		 tol=1e-10,maxit=0,ncv=0);
 
 //print results
-/*
+
 for (int i=0;i<k;i++){
     u1 = eV[i];
     cout << " ---- " << i+1 << " "		
@@ -85,8 +85,8 @@ for (int i=0;i<k;i++){
      	       		- int2d(Th)( ev[i]*u1*u1*rho )
 	<< " --- " << endl;
     plot(eV[i],cmm= i+1 + "th eigenvalue=" + ev[i] + "+i" + iev[i] ,wait=1, dim=3,fill=1, value=1);
-}
-*/
+    }
+
 string tag = "###BEGIN_RESULT###";
-//cout << tag << ev[1] << endl;
-cout << tag << sqrt(ev[1]*ev[1]+iev[1]*iev[1]) << endl;
+cout << tag << ev[1] << endl;
+//cout << tag << sqrt(ev[1]*ev[1]+iev[1]*iev[1]) << endl;

@@ -44,8 +44,8 @@ struct Funcd {
     }*/
     Doub operator() (const Doub x) {
         //std::cout << "  evaluating for perturbation " << x  << "..." << std::endl;
-        if(abs(x)>1)
-            return 0.;
+        /*if(abs(x)>2)
+            return 0.;*/
         //prepare freefem input arguments
         auto perturbation = std::to_string(x);
         std::string freefem_path = "/usr/bin/FreeFem++";
@@ -66,11 +66,24 @@ int main() {
 
     // cheating: compute some results to have an idea of there the maximum is
     Funcd f;
-    Doub a = -1.;
+    /*Doub a = -1.;
     while(a <= 1.){
      std::cout << f(a) << " ";// << std::endl;
         a = a + 0.05;
+    }*/
+
+    /*Doub a = -2.;
+    while(a<-1.){
+        std::cout << f(a) << " ";// << std::endl;
+        a = a + 0.05;
     }
+    std::cout << std::endl;*/
+    Doub a = 1.;
+    while(a<2.4){
+        std::cout << f(a) << " ";
+        a = a + 0.05;
+    }
+
 /*
     Golden golden;
 
