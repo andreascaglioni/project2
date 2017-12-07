@@ -8,27 +8,33 @@ for(int i=0;i<ARGV.n;++i)
    }
    
 //mesh data
- real r =5;
+ real r =4.5;
  real xlow=-r,xhigh=r;
  real ylow=-r,yhigh=r;
  int res = atoi(ARGV[2]);
 
 //problem data: potential V and perturbation b
-
-// INPUT: $V, \Nabla (V), \Delta (V)$
+// INPUT: $V, \Nabla (V), \Delta (V)$*
+/*
  real s11=1, s12=0.;
  real s21=0., s22=0.5; 
  func V = 0.5*(s11*x*x + (s12+s21)*x*y +s22*y*y);
  func dxV = +s11*x+0.5*(s12+s21)*y;
  func dyV = +s22*y+0.5*(s12+s21)*x;
  func lapV = s11 + s22;
+ */
+//INPUT: bistabe potential
+ func V = 0.25*(x*x-1.)*(x*x-1.)+0.5*y*y;
+ func dxV = x*x*x - x + 0.*y;
+ func dyV = y + 0.*x;
+ func lapV = 3.*x*x + 0.*y;
 
 // INPUT: \rho-div-free perturbation b
-real a = 0. * (1-s22)/(2*sqrt(s22));
-func b1 = a * dyV;
-func b2 = -a * dxV;
-func dxb1 = a * 0.5 * (s12+s21);
-func dyb2 = -a * 0.5 * (s12+s21);
+real a = 0.;
+func b1 = 0.;
+func b2 = 0.;
+func dxb1 = 0.;
+func dyb2 = 0.;
 
 //invariant measere (not to be changed)
  func rho = exp(V(x,y));
@@ -40,7 +46,6 @@ real sigma = 0.;	//shift
 int nev=10;		//number of eigenvalues to compute close to sigma
 
 //Mesh generation
- //mesh Th=square(20,20,[pi*x,pi*y]);
  //square mesh
   int n=res, m=res;
   mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);
@@ -56,7 +61,7 @@ varf op(u1,u2) =- int2d(Th)((dx(u1)*dx(u2)+dy(u1)*dy(u2))*rho)
 
 varf b([u1],[u2]) = int2d(Th)( u1*u2*rho );	  //no BC (!)
 matrix OP= op(Vh,Vh,solver=UMFPACK);
-matrix B= b(Vh,Vh,solver=UMFPACK);		  
+matrix B= b(Vh,Vh,solver=UMFPACK);
 
 real[int] ev(nev);		//to store eigenvalue
 real[int] iev(nev);		//to store imaginary part of eigenvalues
@@ -67,6 +72,7 @@ int k=EigenValue(OP,B,sym=false,sigma=sigma,value=ev,ivalue=iev, vector=eV,
 		 tol=1e-10,maxit=0,ncv=0);
 
 //print results
+/*
 for (int i=0;i<k;i++){
     u1=eV[i];
     cout << " ---- " << i+1 << " "		
@@ -77,10 +83,10 @@ for (int i=0;i<k;i++){
 	      		+ int2d(Th)((lapV-(dxb1+dyb2))*u1*u1*rho)			     
      	       		- int2d(Th)( ev[i]* u1*u1*rho )	
 	<< " --- "<<endl;
-   plot(Th, eV[i],cmm= i+1 + "th eigenvalue=" + ev[i] + "+i" + iev[i] ,wait=1, dim=2,fill=1, value=1);
+   plot(Th, eV[i],cmm= i+1 + "th eigenvalue=" + ev[i] + "+i" + iev[i] ,wait=1, dim=3,fill=1, value=1);
 }
-
-ofstream f("convergence.out",append);
+*/
+ofstream f("convergence_bistable.out",append);
 f << res << " ";
 int prec = f.precision(16);
 f << ev[1] << endl;

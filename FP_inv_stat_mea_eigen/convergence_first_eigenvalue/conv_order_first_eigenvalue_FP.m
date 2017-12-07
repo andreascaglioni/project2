@@ -2,11 +2,12 @@
 clc;
 close all;
 clear;
-%% for FP operator with quadratic potential
+
 res = [8 16 32 64 128 256];
 
-%% for P1
+%% for FP operator with quadratic potential P1
 eig = [-1.540290361979151 -0.7731296590611344 -0.5872411113824971 -0.5410867267235467 -0.5295644369174396 -0.5266848249256644];
+%% for FP operator with bistable potential P1
 
 %% plotting
 err = abs(eig - eig(6)*ones(1,6));
