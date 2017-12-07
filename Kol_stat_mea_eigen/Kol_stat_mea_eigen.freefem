@@ -11,7 +11,7 @@ for(int i=0;i<ARGV.n;++i)
  real r =5;
  real xlow=-r,xhigh=r;
  real ylow=-r,yhigh=r;
- int res = atoi(ARGV[2]);
+ int res = 300;
 
 //problem data: potential V and perturbation b
 
@@ -22,14 +22,14 @@ for(int i=0;i<ARGV.n;++i)
  func dxV = +s11*x+0.5*(s12+s21)*y;
  func dyV = +s22*y+0.5*(s12+s21)*x;
 
-//INPUT: O.-U. potential
+//INPUT: bistable potential
 /* func V = 0.25*(x*x-1.)*(x*x-1.)+0.5*y*y;
  func dxV = x*x*x - x + 0.*y;
  func dyV = y + 0.*x + 0.*y;
  func lapV = 3.*x*x + 0.*y;*/
 
 // INPUT: \rho-div-free perturbation b
-real a = 0. * (1-s22)/(2*sqrt(s22));
+real a = atof(ARGV[2]);// * (1-s22)/(2*sqrt(s22));
 func b1 = a * dyV;
 func b2 = -a * dxV;
 func dxb1 = a * 0.5 * (s12+s21);
@@ -56,8 +56,8 @@ varf op(u1,u2) =- int2d(Th)((dx(u1)*dx(u2)+dy(u1)*dy(u2))*rho)
      	        - int2d(Th)((dx(u1)*dxrho+dy(u1)*dyrho)*u2)
      	      	- int2d(Th)(((dxV-b1)*dx(u1)+(dyV-b2)*dy(u1))*u2*rho)		     
      	       	- int2d(Th)( sigma* u1*u2*rho );		      //OP=A_sigma B, shifted matrix
-//		+ int1d(Th,1,2,3,4)((dx(u1)*N.x+dy(u1)*N.y)*u2*rho);
-//     	       	+ on(1,2,3,4,u1=0) ; 	  //BC
+//		+ int1d(Th,1,2,3,4)((dx(u1)*N.x+dy(u1)*N.y)*u2*rho);	
+//     	       	+ on(1,2,3,4,u1=0) ; 	  //Dirichlet BC
 
 varf b([u1],[u2]) = int2d(Th)( u1*u2*rho );	  //no BC (!)
 matrix OP= op(Vh,Vh,solver=UMFPACK);
@@ -72,6 +72,7 @@ int k=EigenValue(OP,B,sym=false,sigma=sigma,value=ev,ivalue=iev, vector=eV,
 		 tol=1e-10,maxit=0,ncv=0);
 
 //print results
+/*
 for (int i=0;i<k;i++){
     u1=eV[i];
     real gg = int2d(Th)(dx(u1)*dx(u1) + dy(u1)*dy(u1));
@@ -85,8 +86,10 @@ for (int i=0;i<k;i++){
 	<< " --- "<<endl;
     plot(eV[i],cmm= i+1 + "th eigenvalue=" + ev[i] + "+i" + iev[i] ,wait=1, dim=3,fill=1, value=1);
 }
+*/
 
-ofstream f("convergence.out",append);
-f << res << " ";
+
+ofstream f("compare_eigen_perturb.out",append);
 int prec = f.precision(16);
-f << ev[1] << endl;
+f << a << " ";
+f << ev[1] << " +i " << iev[1] << endl;
