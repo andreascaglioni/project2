@@ -1,11 +1,13 @@
 # autosaves
 *~
 *autosave
+
 # outputs, figures, etc.
 *.out
 *.pdf
 *.fig
 *.eps
+
 # build directories
 *cmake-build-debug/
 *.idea/
