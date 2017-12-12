@@ -29,7 +29,7 @@ for(int i=0;i<ARGV.n;++i)
  func lapV = 3.*x*x + 0.*y;*/
 
 // INPUT: \rho-div-free perturbation b
-real a = atof(ARGV[2]);// * (1-s22)/(2*sqrt(s22));
+real a = atof(ARGV[2]);
 func b1 = a * dyV;
 func b2 = -a * dxV;
 func dxb1 = a * 0.5 * (s12+s21);
