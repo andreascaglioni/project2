@@ -1,57 +1,67 @@
-verbosity = 1;
+//verbosity = 1;
 
+//Domain
 real r =5;
-real xlow=-r,xhigh=r;
-real ylow=-r,yhigh=r;
+//real xlow=-r,xhigh=r;
+//real ylow=-r,yhigh=r;
 
+//Mesh
+int res = 75;
+//int n=res, m=res;
 //square mesh
-int res = 100;
-int n=res, m=res;
-mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);
+//mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);*/
+//alternative: circular mesh
+border Gamma(t=0,2*pi) { x = r * cos(t); y = r * sin(t); }
+mesh Th = buildmesh(Gamma(res));
 
-// time advancement parameters
+// Time advancement parameters
 real dt = 0.01;
-int Nit = 200;
+real finalTime = 70;
+int Nit = finalTime/dt;
 
 // INPUT: $V, \Nabla (V), \Delta (V)$
-//quadratic potentia
- real s11=1, s12=0.;
- real s21=0., s22=2; 
+//quadratic potential
+ real s11=1., s12=0.;
+ real s21=0., s22=0.5; 
  func V = 0.5*(s11*x*x + (s12+s21)*x*y +s22*y*y);
  func dxV = s11*x+0.5*(s12+s21)*y;
  func dyV = s22*y+0.5*(s12+s21)*x;
  func lapV = s11 + s22;
-
-//Ornstein-Uhlenbech
-/*
-  func V = 0.25*(x*x-1.)*(x*x-1.)+0.5*y*y;
+// perturbation
+real a = 1.;
+func b1 =  a * dyV;
+func b2 = -a * dxV;
+func dxb1 =  a * 0.5 * (s12+s21);
+func dyb2 = -a * 0.5 * (s12+s21);
+func divb = dxb1+dyb2;
+//bistable
+/*func V = 0.25*(x*x-1.)*(x*x-1.)+0.5*y*y;
  func dxV = x*(x*x-1.) + 0.*y;
  func dyV = y + 0.*x + 0.*y;
- func lapV = 3.*x*x + 0.*y;
-*/
+ func lapV = 3.*x*x + 0.*y;*/
 
 // inverse of stationary measure
- func rho = exp(V(x,y));
+func rho = exp(V(x,y));
 
+//Finite elements space and variables
 fespace Vh1(Th,P1);   
 Vh1 ph, qh, pold;
 
-//initia condition
-pold = (x-r)*(x+r)*(y-r)*(y+r);
+//Initia condition
+//pold = (x-r)*(x+r)*(y-r)*(y+r);     // for square mesh
+pold = r^2-(x^2+y^2);                 // for circular mesh
 real mass = int2d(Th)(pold);
 pold = pold/mass;
+//plot(pold, fill=1, value=1, dim=3, wait=1);
 
-varf a(p, q) =	 int2d(Th)(p*q/dt)				 // time dependence
-     	       - int2d(Th)(convect([dxV, dyV], dt, pold)*q/dt)	 //determines second term of time andvancing and advective term 
-//     	       - int2d(Th)(pold*q/dt)
-//     	       - int2d(Th)((dxV*dx(p)+dyV*dy(p))*q)   		 //advection
+varf op(p, q) =  int2d(Th)(p*q/dt)				 // time dependence
+       	       - int2d(Th)(pold*q/dt)
+               - int2d(Th)(((dxV-b1)*dx(p)+(dyV-b2)*dy(p))*q)    //advection
 	       + int2d(Th)(dx(p)*dx(q)+dy(p)*dy(q))		 //diffusion
-	       - int2d(Th)(lapV*p*q)				 //reaction
-	       + on(1,2,3,4, p=0);			   	 //Dirichlet BD
+               - int2d(Th)((lapV-divb)*p*q)		         //reaction
+	       + on(1, p=0);                                     //Dirichlet BD
 
-plot(pold, fill=1, value=1, dim=3, wait=1);
-
-problem FP(ph, qh) = a;
+problem FP(ph, qh) = op;
 
 Vh1[int] sol(Nit);
 int it;
@@ -61,17 +71,19 @@ for (it=0; it<Nit; it++) {
     ph = ph/mass;
     pold = ph;
     sol[it] = ph;
-    plot(ph, fill=1, value=1, dim=3, wait=0);
+    //plot(ph, fill=1, value=1, dim=3, wait=0);
 }
 
-//convergence to stationary solution
+// Print timestep and error at every timestep
 real[int] L2err(Nit);
 Vh1 rhoh = rho;
-ofstream write("convergence_stationary_state.out", append);
-write << "[" ;
+
+string filename = "conv_perturbation_" + a + ".out";
+
+ofstream write(filename);
 int prec = write.precision(16);
+write << dt << "\n";
 for (it=0; it<Nit; it++) {
-    L2err[it] = (int2d(Th)((sol[it]-sol[Nit-1])*(sol[it]-sol[Nit-1])*rhoh))^0.5;
-    write << L2err[it] << ", ";
+  L2err[it] = sqrt( (int2d(Th)( (sol[it]-sol[Nit-1])*(sol[it]-sol[Nit-1])*(sol[Nit-1])^(-1)) ) );
+    write << L2err[it] << "\n";
 }
-write << "]" << endl;;
