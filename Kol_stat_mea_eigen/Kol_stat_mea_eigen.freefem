@@ -7,7 +7,7 @@ for(int i=0;i<ARGV.n;++i)
    
 //mesh data
  real r =5;
- int res = 100;
+ int res = 200;
 
 //problem data: potential V and perturbation b
 
@@ -66,20 +66,21 @@ varf b([u],[v]) = int2d(Th)( u*v*rho );	  //no BC (!)
 matrix OP= op(Vh, Vh, solver=UMFPACK);
 matrix B= b(Vh, Vh, solver=UMFPACK);		  
 
-real[int] ev(nev+1);		//to store eigenvalue *****NB one more iegenvalue may converge!*****
-real[int] iev(nev+1);		//to store imaginary part of eigenvalues
-Vh[int] eV(nev+1);		//to store eigenvectors
+real[int] ev(nev);		//to store eigenvalue *****NB one more iegenvalue may converge!*****
+real[int] iev(nev);		//to store imaginary part of eigenvalues
+Vh[int] eV(nev);		//to store eigenvectors
 
 //resolution of dicrete eigenvalue problem
-int k=EigenValue(OP,B,sym=false,sigma=sigma,value=ev,ivalue=iev, vector=eV,
+int k=EigenValue(OP,B,nev=nev, sym=false,sigma=sigma,value=ev,ivalue=iev, vector=eV,
 		 tol=1e-10,maxit=0,ncv=0);
 
 //print results and relative error
 macro plotResult(fun, i, nR, nI, str) plot(fun,cmm= i+1 + "th eigenvalue=" + nR + "+i" + nI + " " + str , wait=1, dim=3,fill=1, value=1) //
 macro printResult(i,nR, nI, err) cout << " ---- " << i+1 << " " << nR << "+i" << nI << " error= " << err << " --- "<<endl //
+  
 for (int i=0;i<nev;i++){
     Vh u=eV[i];
-    if(iev[i]==0) {
+    if(iev[i]==0 || i==nev-1) {
       real absError =  Kol(u,u) - ev[i]*SP(u,u);
       real relError = absError/ev[i];
       printResult(i, ev[i], iev[i], relError);
@@ -98,9 +99,15 @@ for (int i=0;i<nev;i++){
       i = i+1;
     }
  }
-ev.sort;
-cout << "******* minimum real part eigenvalue: " << ev[nev-2] << endl;
 
+// find index if minimum
+int flag = 1;
+for (int i=1; i<nev; i++){
+  if(ev[i]>ev[flag])
+    flag = i;
+
+ }
+cout << "******* minimum real part eigenvalue: " << ev[flag] << "+i" << iev[flag] << endl;
 /*ofstream f("compare_eigen_perturb.out",append);
 int prec = f.precision(16);
 f << a << " ";
