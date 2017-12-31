@@ -1,4 +1,4 @@
-# Accelerating rate f convergence to stationary solution of diffusion
+# Accelerating rate of convergence to stationary solution of diffusions
 Repository for a semester project carried out at EPFL during the autumn sememster of 2017
 Contains mostly FreeFem++ scripts that solve numerically differential problems, in particular:
 
