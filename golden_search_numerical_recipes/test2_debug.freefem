@@ -18,7 +18,7 @@ for(int i=0;i<ARGV.n;++i)
  real r =5;
  real xlow=-r,xhigh=r;
  real ylow=-r,yhigh=r;
- int res = 400;
+ int res = 100;
 
 //problem data: potential V and perturbation b
 

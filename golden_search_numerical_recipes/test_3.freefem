@@ -1,0 +1,125 @@
+//description: looks for eigenvalues of backward Kolmogorov operator in L^2(\psi_\infty}) (optionally perturbed)
+
+//************************
+//ALWAYS KEEP THIS WHEN RUNNING FROM C++
+verbosity = 0;
+string astring = ARGV[5];
+//************************
+
+real a = atof(astring);
+
+for(int i=0;i<ARGV.n;++i)
+   {
+     cout << ARGV[i] << endl;
+   }
+   
+//mesh data
+ real r =5;
+ int res = 150;
+
+//problem data: potential V and perturbation b
+
+// INPUT: $V, \Nabla (V), \Delta (V)$
+/* real s11=1, s12=0.;
+ real s21=0., s22=0.5; 
+ func V = 0.5*(s11*x*x + (s12+s21)*x*y +s22*y*y);
+ func dxV = +s11*x+0.5*(s12+s21)*y;
+ func dyV = +s22*y+0.5*(s12+s21)*x;*/
+
+//INPUT: bistable potential
+ func V = 0.25*(x^2-1.)^2 + 0.5*y^2;
+ func dxV = x^3 - x + 0.*y;
+ func dyV = y + 0.*x ;
+ func lapV = 3.*x^2 + 0.*y;
+
+// INPUT: \rho-div-free perturbation b
+func p1 = a * dyV;
+func p2 = -a * dxV;
+
+// (perturbed) drift (not to be changed)
+func b1 = -dxV + p1;
+func b2 = -dyV + p2;
+			
+//invariant measere (not to be changed)
+ func rho = exp(-V(x,y));
+ func dxrho = - rho(x,y) * dxV(x,y);
+ func dyrho = - rho(x,y) * dyV(x,y);
+
+// eigenproblem parameters
+real sigma = 0.;	//shift
+int nev=10;		//number of eigenvalues to compute close to sigma
+
+//Mesh generation
+ //square mesh
+/*int n=res, m=res;
+real xlow=-r,xhigh=r;
+real ylow=-r,yhigh=r;
+mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);*/
+// circular mesh
+border Gamma(t=0,2*pi) { x = r *0.7* cos(t); y = r * sin(t); }
+mesh Th = buildmesh(Gamma(4*res));
+
+fespace Vh(Th,P1);
+Vh u1,u2;
+
+macro Kol(u,v) - int2d(Th)(dx(u)*(dx(v)*rho+v*dxrho)+dy(u)*(dy(v)*rho+v*dyrho))
+               + int2d(Th)((b1*dx(u)+b2*dy(u))*v*rho)                            // MACRO for Kolmogorov bilinear form in L^2(\Omega, \rho)
+macro SP(u,v) int2d(Th)(u*v*rho) // MACRO for scalar product in L^2(\Omega, \rho)
+
+varf op(u,v) = Kol(u,v) - SP(sigma*u,v);
+//     	       + on(1,2,3,4,u=0) ; 	                                         //Dirichlet BC
+varf b([u],[v]) = int2d(Th)( u*v*rho );	  //no BC (!)
+
+matrix OP= op(Vh, Vh, solver=UMFPACK);
+matrix B= b(Vh, Vh, solver=UMFPACK);		  
+
+real[int] ev(nev);		//to store eigenvalue *****NB one more iegenvalue may converge!*****
+real[int] iev(nev);		//to store imaginary part of eigenvalues
+Vh[int] eV(nev);		//to store eigenvectors
+
+//resolution of dicrete eigenvalue problem
+int k=EigenValue(OP,B,nev=nev, sym=false,sigma=sigma,value=ev,ivalue=iev, vector=eV,
+		 tol=1e-10,maxit=0,ncv=0);
+
+//print results and relative error
+macro plotResult(fun, i, nR, nI, str) plot(fun,cmm= i+1 + "th eigenvalue=" + nR + "+i" + nI + " " + str , wait=1, dim=3,fill=1, value=1) //
+macro printResult(i,nR, nI, err) cout << " ---- " << i+1 << " " << nR << "+i" << nI << " error= " << err << " --- "<<endl //
+/*  
+for (int i=0;i<nev;i++){
+    Vh u=eV[i];
+    if(iev[i]==0 || i==nev-1) {
+      real absError =  Kol(u,u) - ev[i]*SP(u,u);
+      real relError = absError/ev[i];
+      printResult(i, ev[i], iev[i], relError);
+      plotResult(eV[i],i,ev[i],iev[i],"");
+    }
+    else {
+      Vh up = eV[i+1];
+      real absErrorReal =  Kol(u,u) - Kol(up,up) - (ev[i]*(SP(u,u)-SP(up,up)) - 2*iev[i]*SP(u,up));
+      real absErrorImag =  Kol(u,up) + Kol(up,u) - (iev[i]*(SP(u,u)-SP(up,up)) + 2*ev[i]*SP(u,up));
+      real relErrorReal = absErrorReal/ev[i];
+      real relErrorImag = absErrorImag/iev[i];
+      real relError = sqrt(relErrorReal^2 + relErrorImag^2);
+      printResult(i, ev[i], iev[i], relError);
+      plotResult(eV[i],i,ev[i],iev[i],"REAL");
+      plotResult(eV[i+1],i,ev[i],iev[i],"IMAGINARY");
+      i = i+1;
+    }
+ }
+*/
+// find index if minimum
+int flag = 1;
+for (int i=1; i<nev; i++){
+  if(ev[i]>ev[flag])
+    flag = i;
+
+ }
+//cout << "******* minimum real part eigenvalue: " << ev[flag] << "+i" << iev[flag] << endl;
+/*ofstream f("compare_eigen_perturb.out",append);
+int prec = f.precision(16);
+f << a << " ";
+f << ev[1] << " +i " << iev[1] << endl;*/
+
+string tag = "###BEGIN_RESULT###";
+cout << tag << ev[flag] << endl;
+//cout << tag << sqrt(ev[flag]*ev[flag]+iev[flag]*iev[flag]) << endl;

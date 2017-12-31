@@ -50,7 +50,7 @@ struct Funcd {
         auto perturbation = std::to_string(x);
         std::string freefem_path = "/usr/bin/FreeFem++";
         std::string flags = "-v 0 -ne";                     //DONT CHANGE THIS, OR ALSO CHANGE THE FREEFEM SCRIPT
-        std::string script_address = "/home/andrea/Documents/semester_project_2_code/golden_search_numerical_recipes/test2.freefem";
+        std::string script_address = "/home/andrea/Documents/semester_project_2_code/golden_search_numerical_recipes/test_3.freefem";
         std::string cmd = freefem_path + " " + flags + " " + script_address + " " + perturbation;
         const char* cmd_c = cmd.c_str();
 
@@ -66,30 +66,15 @@ int main() {
 
     // cheating: compute some results to have an idea of there the maximum is
     Funcd f;
-    /*Doub a = -1.;
-    while(a <= 1.){
-     std::cout << f(a) << " ";// << std::endl;
-        a = a + 0.05;
-    }*/
-
-    /*Doub a = -2.;
-    while(a<-1.){
-        std::cout << f(a) << " ";// << std::endl;
-        a = a + 0.05;
-    }
-    std::cout << std::endl;*/
-    Doub a = 1.;
-    while(a<2.4){
-        std::cout << f(a) << " ";
-        a = a + 0.05;
+    Doub a = 50.;
+    while(a<80.){
+        std::cout << f(a) << " " << std::flush;
+        a = a + 1;
     }
 
-/*
-    Golden golden;
-
+/*  Golden golden;
     golden.bracket(-0.35, 0.35, f);
     double xmin = golden.minimize(f);
-
     std::cout << "main" << std::endl;
     std::cout << golden.ax << " < " << golden.bx << " < " << golden.cx << std::endl;
     std::cout << golden.fa << " , " << golden.fb << " , " << golden.fc << std::endl;
