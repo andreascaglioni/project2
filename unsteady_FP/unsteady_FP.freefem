@@ -85,5 +85,7 @@ int prec = write.precision(16);
 write << dt << "\n";
 for (it=0; it<Nit; it++) {
   L2err[it] = sqrt( (int2d(Th)( (sol[it]-sol[Nit-1])*(sol[it]-sol[Nit-1])*(sol[Nit-1])^(-1)) ) );
-    write << L2err[it] << "\n";
+  write << L2err[it] << "\n";
+  if(L2err[it]<1.e-16)
+       break;
 }
