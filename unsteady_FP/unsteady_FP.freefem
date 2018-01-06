@@ -1,46 +1,54 @@
 //verbosity = 1;
 
-//Domain
-real r =5;
-//real xlow=-r,xhigh=r;
-//real ylow=-r,yhigh=r;
+real a = atof(ARGV[2]);
 
+//Domain
+real r =10;
 //Mesh
-int res = 75;
+int res = 50;
 //int n=res, m=res;
 //square mesh
 //mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);*/
 //alternative: circular mesh
-border Gamma(t=0,2*pi) { x = r * cos(t); y = r * sin(t); }
-mesh Th = buildmesh(Gamma(res));
+border Gamma(t=0,2*pi) { x = 0.7*r*cos(t); y = r*sin(t); }
+mesh Th = buildmesh(Gamma(4*res));
 
 // Time advancement parameters
-real dt = 0.01;
-real finalTime = 70;
+real dt = 0.02;
+real finalTime = 60;
 int Nit = finalTime/dt;
 
 // INPUT: $V, \Nabla (V), \Delta (V)$
 //quadratic potential
- real s11=1., s12=0.;
+/* real s11=1., s12=0.;
  real s21=0., s22=0.5; 
  func V = 0.5*(s11*x*x + (s12+s21)*x*y +s22*y*y);
  func dxV = s11*x+0.5*(s12+s21)*y;
  func dyV = s22*y+0.5*(s12+s21)*x;
- func lapV = s11 + s22;
+ func lapV = s11 + s22;*/
 // perturbation
-real a = 1.;
-func b1 =  a * dyV;
-func b2 = -a * dxV;
-func dxb1 =  a * 0.5 * (s12+s21);
-func dyb2 = -a * 0.5 * (s12+s21);
-func divb = dxb1+dyb2;
+/*func p1 =  a * dyV;
+func p2 = -a * dxV;
+func dxp1 =  a * 0.5 * (s12+s21);
+func dyp2 = -a * 0.5 * (s12+s21);
+func divp = dxp1+dyp2;*/
 //bistable
-/*func V = 0.25*(x*x-1.)*(x*x-1.)+0.5*y*y;
- func dxV = x*(x*x-1.) + 0.*y;
- func dyV = y + 0.*x + 0.*y;
- func lapV = 3.*x*x + 0.*y;*/
+func V = 0.25*(x^2-1.)^2+0.5*y^2;
+ func dxV = x^3-x + 0.*y;
+ func dyV = y;
+ func lapV = 3.*x^2;
+// perturbation bistable
+func p1 =  a * dyV;
+func p2 = -a * dxV;
+func dxp1 = 0.;
+func dyp2 = 0.;
+func divp = dxp1+dyp2;
+// drift term (do not modify)
+func b1 = dxV-p1;
+func b2 = dyV-p2;
+func divb = lapV - divp;
 
-// inverse of stationary measure
+// inverse of stationary measure (do not modify)
 func rho = exp(V(x,y));
 
 //Finite elements space and variables
@@ -56,22 +64,24 @@ pold = pold/mass;
 
 varf op(p, q) =  int2d(Th)(p*q/dt)				 // time dependence
        	       - int2d(Th)(pold*q/dt)
-               - int2d(Th)(((dxV-b1)*dx(p)+(dyV-b2)*dy(p))*q)    //advection
+               - int2d(Th)((b1*dx(p)+b2*dy(p))*q)                //advection
 	       + int2d(Th)(dx(p)*dx(q)+dy(p)*dy(q))		 //diffusion
-               - int2d(Th)((lapV-divb)*p*q)		         //reaction
+               - int2d(Th)(divb*p*q)		                 //reaction
 	       + on(1, p=0);                                     //Dirichlet BD
 
 problem FP(ph, qh) = op;
 
+// solve the proble, compute error, print and plot
 Vh1[int] sol(Nit);
 int it;
 for (it=0; it<Nit; it++) {
+    sol[it] = pold;
     FP;
     mass = int2d(Th)(ph);
     ph = ph/mass;
     pold = ph;
-    sol[it] = ph;
-    //plot(ph, fill=1, value=1, dim=3, wait=0);
+    
+    //plot( ph, fill=1, value=1, dim=3, wait=0);
 }
 
 // Print timestep and error at every timestep
@@ -89,3 +99,4 @@ for (it=0; it<Nit; it++) {
   if(L2err[it]<1.e-16)
        break;
 }
+
