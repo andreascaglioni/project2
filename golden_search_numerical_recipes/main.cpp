@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <string>
 #include <array>
+#include <cassert>
+#include <complex>
 #include "mins.h"
 
 std::string exec(const char* cmd) {
@@ -18,46 +20,34 @@ std::string exec(const char* cmd) {
     }
     return result;
 }
-double extract_value_from_String(std::string str){
-    //std::cout << "  freefem output: " << str << std::endl;
+std::complex<double> extract_value_from_String(std::string str){
+
     std::string tag = "###BEGIN_RESULT###";
-    int tag_length = tag.size();
-    std::size_t tag_position = str.find(tag);
-    std::string substring = str.substr(tag_position+tag_length);
-    std::stringstream ss(substring);
-    std::string str_value;
-    std::getline(ss, str_value, '\n');
-/*    std::cout << tag << " found at position " << tag_position << std::endl;
-    std::cout << "tag length " << tag_length << std::endl;
-    std::cout << "substring " << substring << std::endl;
-    std::cout << "value " << str_value << std::endl;*/
-    return std::stod(str_value);
+    if (str.find(tag)==-1){
+        std::cerr << "error: " << str << std::endl;
+        return 0.;
+    }
+    std::string tagI = "#i#";
+    std::string final = str.substr(str.find(tag)+tag.size());
+    std::stringstream ss(final);
+    std::string line; std::getline(ss, line, '\n');
+    std::string str_real = line.substr(0, line.find(tagI));
+    std::string str_imaginary = line.substr(line.find(tagI)+tagI.size());
+    Doub real_part = std::stod(str_real);
+    Doub imaginary_part = std::stod(str_imaginary);
+    return std::complex<double> (real_part, imaginary_part);
 }
 struct Funcd {
-    /*Doub operator() (const Doub x) {
-        if(x < 5. && x > -5.)
-            return -(sin(x)+cos(2.*x)+ 1./x*sin(3.*x));
-        else if(x>=5.)
-            return -(sin(5.)+cos(2.*5.)+ 1./x*sin(3.*5.));
-        else
-            return -(sin(-5.)+cos(2.*-5.)+ 1./x*sin(3.*-5.));
-    }*/
-    Doub operator() (const Doub x) {
-        //std::cout << "  evaluating for perturbation " << x  << "..." << std::endl;
-        /*if(abs(x)>2)
-            return 0.;*/
+    std::complex<double> operator() (const Doub x) {
         //prepare freefem input arguments
-        auto perturbation = std::to_string(x);
+        std::string perturbation = std::to_string(x);
         std::string freefem_path = "/usr/bin/FreeFem++";
         std::string flags = "-v 0 -ne";                     //DONT CHANGE THIS, OR ALSO CHANGE THE FREEFEM SCRIPT
         std::string script_address = "/home/andrea/Documents/semester_project_2_code/golden_search_numerical_recipes/test_3.freefem";
         std::string cmd = freefem_path + " " + flags + " " + script_address + " " + perturbation;
         const char* cmd_c = cmd.c_str();
-
         std::string output_string = exec(cmd_c);   //run freefem
-        Doub spectral_gap = extract_value_from_String(output_string);
-        //Doub spectral_gap = std::stod(output);
-        //std::cout << " -> " << spectral_gap << std::endl;
+        std::complex<double> spectral_gap = extract_value_from_String(output_string);
         return spectral_gap;
     }
 };
@@ -66,11 +56,50 @@ int main() {
 
     // cheating: compute some results to have an idea of there the maximum is
     Funcd f;
-    Doub a = 50.;
-    while(a<80.){
-        std::cout << f(a) << " " << std::flush;
-        a = a + 1;
+
+    std::ofstream writeToFile("../test_bistable.out");
+    assert(writeToFile.is_open());
+
+    Doub a = 0.;
+    while(a< 0.2) {
+        std::complex<double> val = f(a);
+        std::cout << a << " " << real(val) << " " << imag(val) << std::endl;
+        writeToFile << a << " " << real(val) << " " << imag(val) << std::endl;
+        a += 0.001;
     }
+
+    a = 0.2;
+    while(a< 11.) {
+        std::complex<double> val = f(a);
+        std::cout << a << " " << real(val) << " " << imag(val) << std::endl;
+        writeToFile << a << " " << real(val) << " " << imag(val) << std::endl;
+        a += 0.1;
+    }
+
+    a = 11.;
+    while(a< 11.2) {
+        std::complex<double> val = f(a);
+        std::cout << a << " " << real(val) << " " << imag(val) << std::endl;
+        writeToFile << a << " " << real(val) << " " << imag(val) << std::endl;
+        a += 0.001;
+    }
+    a = 11.2;
+    while(a< 12.) {
+        std::complex<double> val = f(a);
+        std::cout << a << " " << real(val) << " " << imag(val) << std::endl;
+        writeToFile << a << " " << real(val) << " " << imag(val) << std::endl;
+        a += 0.1;
+    }
+    a = 12.;
+    while(a< 20.) {
+        std::complex<double> val = f(a);
+        std::cout << a << " " << real(val) << " " << imag(val) << std::endl;
+        writeToFile << a << " " << real(val) << " " << imag(val) << std::endl;
+        writeToFile.flush();
+        a += 1.;
+    }
+
+    writeToFile.close();
 
 /*  Golden golden;
     golden.bracket(-0.35, 0.35, f);
