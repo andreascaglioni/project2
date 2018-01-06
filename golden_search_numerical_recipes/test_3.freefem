@@ -17,13 +17,13 @@ for(int i=0;i<ARGV.n;++i)
   }
    
 //mesh data
-real r =5;
-int[int] resVec = [100, 150, 200, 250];
+real r =3.5;
+int[int] resVec = [100, 200, 300];
 
 // while as global adaptivity
 real relError = 1e-1;
 int nRefine = 0;
-while(relError>1e-4 && nRefine < resVec.n ) {
+while(abs(relError)>1e-4 && nRefine < resVec.n ) {
   int res = resVec[nRefine];
   nRefine=nRefine+1;
   //problem data: potential V and perturbation b
@@ -36,10 +36,21 @@ while(relError>1e-4 && nRefine < resVec.n ) {
      func dyV = +s22*y+0.5*(s12+s21)*x;*/
 
   //INPUT: bistable potential
-  func V = 0.25*(x^2-1.)^2 + 0.5*y^2;
-  func dxV = x^3 - x + 0.*y;
-  func dyV = y + 0.*x ;
-  func lapV = 3.*x^2 + 0.*y;
+  /*func V = 0.25*(x^2-1.)^2 + 0.5*y^2;
+    func dxV = x^3 - x + 0.*y;
+    func dyV = y + 0.*x ;
+    func lapV = 3.*x^2 + 0.*y;*/
+  // 3 holes potential
+  func V = 3*exp(-x^2-(y-1./3.)^2)-3*exp(-x^2-(y-5./3.)^2)
+    -5*exp(-(x-1)^2-y^2)-5*exp(-(x+1)^2-y^2)
+    +0.2*x^4+0.2*(y-1./3.)^4;
+  func dxV = -6*x*exp(-x^2)*(exp(-(y-1./3.)^2 ) -exp(-(y-5./3.)^2))
+    + 10*(exp(-(x-1)^2)*(x-1) + exp(-(x+1)^2)*(x+1))*exp(-y^2)
+    + 4./5.*x^3;
+  func dyV= -6*exp(-x^2)*(exp(-(y-1./3.)^2)*(y-1./3.) - exp(-(y-5./3.)^2)*(y-5./3.))
+    + 10*(exp(-(x-1)^2) + exp(-(x+1)^2))*y*exp(-y^2)
+    + 4./5.*(y-1./3.)^3;
+  func lapV = 12* exp(-x^2 - (y - 1.66667)^2) - 12* exp(-x^2 - (y - 1./3.)^2) - 12* x^2* exp(-x^2 - (y - 1.66667)^2) + 12* x^2* exp(-x^2 - (y - 1./3.)^2) - 12* (y - 1.66667)^2* exp(-x^2 - (y - 1.66667)^2) + 12* (y - 1./3.)^2*exp(-x^2 - (y - 1./3.)^2) + 2.4* x^2 - 20* (x - 1)^2* exp(-(x - 1)^2 - y^2) + 20* exp(-(x - 1)^2 - y^2) + 20* exp(-(x + 1)^2 - y^2) - 20* (x + 1)^2* exp(-(x + 1)^2 - y^2) - 20* y^2* exp(-(x - 1)^2 - y^2) - 20* y^2* exp(-(x + 1)^2 - y^2) + 2.4* (y - 1./3.)^2;
 
   // INPUT: \rho-div-free perturbation b
   func p1 = a * dyV;
@@ -59,14 +70,14 @@ while(relError>1e-4 && nRefine < resVec.n ) {
   int nev=10;		//number of eigenvalues to compute close to sigma
 
   //Mesh generation
-  //square mesh
-  /*int n=res, m=res;
-    real xlow=-r,xhigh=r;
-    real ylow=-r,yhigh=r;
-    mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);*/
+  //square mesh with center in (0,0,5) for 3 holes potential
+  int n=res, m=res;
+  real xlow=-r,xhigh=r;
+  real ylow=0.5-r,yhigh=0.5+r;
+  mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);
   // circular mesh
-  border Gamma(t=0,2*pi) { x = r *0.7* cos(t); y = r * sin(t); }
-  mesh Th = buildmesh(Gamma(4*res));
+  /*border Gamma(t=0,2*pi) { x = r *0.7* cos(t); y = r * sin(t); }
+    mesh Th = buildmesh(Gamma(4*res));*/
 
   fespace Vh(Th,P1);
   Vh u1,u2;
@@ -93,30 +104,30 @@ while(relError>1e-4 && nRefine < resVec.n ) {
 
   //print results and relative error
   /*  
-  macro plotResult(fun, i, nR, nI, str) plot(fun,cmm= i+1 + "th eigenvalue=" + nR + "+i" + nI + " " + str , wait=1, dim=3,fill=1, value=1) //
-    macro printResult(i,nR, nI, err) cout << " ---- " << i+1 << " " << nR << "+i" << nI << " error= " << err << " --- "<<endl //
+      macro plotResult(fun, i, nR, nI, str) plot(fun,cmm= i+1 + "th eigenvalue=" + nR + "+i" + nI + " " + str , wait=1, dim=3,fill=1, value=1) //
+      macro printResult(i,nR, nI, err) cout << " ---- " << i+1 << " " << nR << "+i" << nI << " error= " << err << " --- "<<endl //
 
-    for (int i=0;i<nev;i++){
+      for (int i=0;i<nev;i++){
       Vh u=eV[i];
       if(iev[i]==0 || i==nev-1) {
-	real absError =  Kol(u,u) - ev[i]*SP(u,u);
-	real relError = absError/ev[i];
-	printResult(i, ev[i], iev[i], relError);
-	plotResult(eV[i],i,ev[i],iev[i],"");
+      real absError =  Kol(u,u) - ev[i]*SP(u,u);
+      real relError = absError/ev[i];
+      printResult(i, ev[i], iev[i], relError);
+      plotResult(eV[i],i,ev[i],iev[i],"");
       }
       else {
-	Vh up = -eV[i+1];
-	real absErrorReal = Kol(u,u)+Kol(up,up) - ev[i]*(SP(u,u)+SP(up,up));
-	real absErrorImag = Kol(u,up)-(Kol(up,u)) - iev[i]*(SP(u,u)+SP(up,up));
-	real relErrorReal = absErrorReal/ev[i];
-	real relErrorImag = absErrorImag/iev[i];
-	real relError = sqrt(relErrorReal^2 + relErrorImag^2);
-	printResult(i, ev[i], iev[i], relError);
-	plotResult(eV[i],i,ev[i],iev[i],"REAL");
-	plotResult(eV[i+1],i,ev[i],iev[i],"IMAGINARY");
-	i = i+1;
+      Vh up = -eV[i+1];
+      real absErrorReal = Kol(u,u)+Kol(up,up) - ev[i]*(SP(u,u)+SP(up,up));
+      real absErrorImag = Kol(u,up)-(Kol(up,u)) - iev[i]*(SP(u,u)+SP(up,up));
+      real relErrorReal = absErrorReal/ev[i];
+      real relErrorImag = absErrorImag/iev[i];
+      real relError = sqrt(relErrorReal^2 + relErrorImag^2);
+      printResult(i, ev[i], iev[i], relError);
+      plotResult(eV[i],i,ev[i],iev[i],"REAL");
+      plotResult(eV[i+1],i,ev[i],iev[i],"IMAGINARY");
+      i = i+1;
       }
-    }
+      }
   */  
   // find index if minimum
   int flag = 1;
@@ -146,11 +157,11 @@ while(relError>1e-4 && nRefine < resVec.n ) {
   specGapI = iev[flag];
  }
 
-  string tag = "###BEGIN_RESULT###";
+string tag = "###BEGIN_RESULT###";
 if(relError>1e-3){
   specGapR=0.;
   specGapI=0.;
   cout << "relError: " << relError << endl;
  }
 cout << tag << specGapR << "#i#" << specGapI << endl;
-//cout << "relError:" << relError << endl;
+cout << "relError:" << relError << endl;

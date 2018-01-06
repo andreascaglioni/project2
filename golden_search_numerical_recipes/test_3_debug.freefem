@@ -1,43 +1,58 @@
 //description: looks for eigenvalues of backward Kolmogorov operator in L^2(\psi_\infty}) (optionally perturbed)
 
-
-
 //verbosity = 0;
-string astring = ARGV[2];
-
-real a = atof(astring);
-real specGapR=0.;
-real specGapI=0.;
-
 for(int i=0;i<ARGV.n;++i)
   {
     cout << ARGV[i] << endl;
   }
+
+string astring = ARGV[2];
+real a = atof(astring);
+real specGapR=0.;
+real specGapI=0.;
+
    
 //mesh data
-real r =5;
-int[int] resVec = [200, 150, 200, 250];
+real r =3.5;
+int[int] resVec = [100, 250, 350];
 
 // while as global adaptivity
 real relError = 1e-1;
 int nRefine = 0;
-while(relError>1e-4 && nRefine < resVec.n ) {
+
+while(abs(relError)>1e-4 && nRefine < resVec.n ) {
   int res = resVec[nRefine];
   nRefine=nRefine+1;
   //problem data: potential V and perturbation b
 
   // INPUT: $V, \Nabla (V), \Delta (V)$
-   real s11=1, s12=0.;
+  /*real s11=1, s12=0.;
      real s21=0., s22=0.5; 
      func V = 0.5*(s11*x*x + (s12+s21)*x*y +s22*y*y);
      func dxV = +s11*x+0.5*(s12+s21)*y;
-     func dyV = +s22*y+0.5*(s12+s21)*x;
+     func dyV = +s22*y+0.5*(s12+s21)*x;*/
 
   //INPUT: bistable potential
      /*  func V = 0.25*(x^2-1.)^2 + 0.5*y^2;
   func dxV = x^3 - x + 0.*y;
   func dyV = y + 0.*x ;
   func lapV = 3.*x^2 + 0.*y;*/
+   // 3 holes potential
+  func V = 3*exp(-x^2-(y-1./3.)^2)-3*exp(-x^2-(y-5./3.)^2)
+    -5*exp(-(x-1)^2-y^2)-5*exp(-(x+1)^2-y^2)
+    +0.2*x^4+0.2*(y-1./3.)^4;
+  func dxV = -6*x*exp(-x^2)*(exp(-(y-1./3.)^2 ) -exp(-(y-5./3.)^2))
+    + 10*(exp(-(x-1)^2)*(x-1) + exp(-(x+1)^2)*(x+1))*exp(-y^2)
+    + 4./5.*x^3;
+  func dyV= -6*exp(-x^2)*(exp(-(y-1./3.)^2)*(y-1./3.) - exp(-(y-5./3.)^2)*(y-5./3.))
+    + 10*(exp(-(x-1)^2) + exp(-(x+1)^2))*y*exp(-y^2)
+    + 4./5.*(y-1./3.)^3;
+  func lapV = -6*exp(-x^2)*(-2*x^2+1)*(exp(-(y-1./3.)^2)-exp(-(y-5./3.)^2))
+			+10*(exp(-(x-1)^2)*(-2*(x-1)^2+1)+exp(-(x+1)^2)*(-2*(x+1)^2+1))*exp(-y^2)
+			+12./5.*x^2
+	   -6*exp(-x^2)*(exp(-(y-1./3.)^2)*(-2*(y-1./3.)^2+1)-exp(-(y-5./3.)^2)*(-2*(y-5./3.)^2+1))
+			+10*(exp(-(x-1)^2)+exp(-(x+1)^2))*exp(-y^2)*(-2*y^2+1)
+			+ 12./5.*(y-1./3.)^2;
 
   // INPUT: \rho-div-free perturbation b
   func p1 = a * dyV;
@@ -57,18 +72,18 @@ while(relError>1e-4 && nRefine < resVec.n ) {
   int nev=10;		//number of eigenvalues to compute close to sigma
 
   //Mesh generation
-  //square mesh
-  /*int n=res, m=res;
-    real xlow=-r,xhigh=r;
-    real ylow=-r,yhigh=r;
-    mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);*/
+ //square mesh with center in (0,0,5) for 3 holes potential
+  int n=res, m=res;
+  real xlow=-r,xhigh=r;
+  real ylow=0.5-r,yhigh=0.5+r;
+  mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);
   // circular mesh
-  border Gamma(t=0,2*pi) { x = r* cos(t); y = r * sin(t); }
-  mesh Th = buildmesh(Gamma(4*res));
+  /*border Gamma(t=0,2*pi) { x = r* cos(t); y = r * sin(t); }
+    mesh Th = buildmesh(Gamma(4*res));*/
 
   fespace Vh(Th,P1);
   Vh u1,u2;
-
+  //Vh rhoh=rho; plot(rhoh, dim=3, wait=1, fill=1);
   macro Kol(u,v) - int2d(Th)(dx(u)*(dx(v)*rho+v*dxrho)+dy(u)*(dy(v)*rho+v*dyrho))
     + int2d(Th)((b1*dx(u)+b2*dy(u))*v*rho)                            // MACRO for Kolmogorov bilinear form in L^2(\Omega, \rho)
     macro SP(u,v) int2d(Th)(u*v*rho) // MACRO for scalar product in L^2(\Omega, \rho)
@@ -96,20 +111,20 @@ while(relError>1e-4 && nRefine < resVec.n ) {
 
     for (int i=0;i<nev;i++){
       Vh u=eV[i];
-      if(iev[i]==0 || i==nev-1) {
-	real absError =  Kol(u,u) - ev[i]*SP(u,u);
+      if(iev[i]==0 || i==nev-1) { i=i;
+	/*real absError =  Kol(u,u) - ev[i]*SP(u,u);
 	real relError = absError/ev[i];
-	printResult(i, ev[i], iev[i], relError);
+	printResult(i, ev[i], iev[i], relError);*/
 	plotResult(eV[i],i,ev[i],iev[i],"");
       }
       else {
-	Vh up = -eV[i+1];
+	/*Vh up = -eV[i+1];
 	real absErrorReal = Kol(u,u)+Kol(up,up) - ev[i]*(SP(u,u)+SP(up,up));
 	real absErrorImag = Kol(u,up)-(Kol(up,u)) - iev[i]*(SP(u,u)+SP(up,up));
 	real relErrorReal = absErrorReal/ev[i];
 	real relErrorImag = absErrorImag/iev[i];
 	real relError = sqrt(relErrorReal^2 + relErrorImag^2);
-	printResult(i, ev[i], iev[i], relError);
+	printResult(i, ev[i], iev[i], relError);*/
 	plotResult(eV[i],i,ev[i],iev[i],"REAL");
 	plotResult(eV[i+1],i,ev[i],iev[i],"IMAGINARY");
 	i = i+1;
@@ -148,7 +163,8 @@ while(relError>1e-4 && nRefine < resVec.n ) {
 if(relError>1e-3){
   specGapR=0.;
   specGapI=0.;
-  cout << "relError: " << relError << endl;
+ 
  }
+ cout << "relError: " << relError << endl;
 cout << tag << specGapR << "#i#" << specGapI << endl;
 //cout << "relError:" << relError << endl;
