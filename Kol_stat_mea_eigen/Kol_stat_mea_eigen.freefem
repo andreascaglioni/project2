@@ -6,7 +6,7 @@ for(int i=0;i<ARGV.n;++i)
    }
    
 //mesh data
- real r =5;
+ real r =5.;
  int res = 200;
 
 //problem data: potential V and perturbation b
@@ -87,9 +87,9 @@ for (int i=0;i<nev;i++){
       plotResult(eV[i],i,ev[i],iev[i],"");
     }
     else {
-      Vh up = eV[i+1];
-      real absErrorReal =  Kol(u,u) - Kol(up,up) - (ev[i]*(SP(u,u)-SP(up,up)) - 2*iev[i]*SP(u,up));
-      real absErrorImag =  Kol(u,up) + Kol(up,u) - (iev[i]*(SP(u,u)-SP(up,up)) + 2*ev[i]*SP(u,up));
+      Vh up = -eV[i+1]; // the "-" is there (?) (check freefem documentation)
+      real absErrorReal = Kol(u,u)+Kol(up,up) - ev[i]*(SP(u,u)+SP(up,up));
+      real absErrorImag = Kol(u,up)-(Kol(up,u)) - iev[i]*(SP(u,u)+SP(up,up));
       real relErrorReal = absErrorReal/ev[i];
       real relErrorImag = absErrorImag/iev[i];
       real relError = sqrt(relErrorReal^2 + relErrorImag^2);
