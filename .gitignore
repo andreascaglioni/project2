@@ -3,7 +3,6 @@
 *autosave
 
 # outputs, figures, etc.
-*.out
 *.pdf
 *.fig
 *.eps
