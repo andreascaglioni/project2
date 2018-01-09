@@ -1,0 +1,40 @@
+# convergence of first eigenvalue of Kol operator for increasing mesh resolution (8 -> 256)
+# generated from Kol_stat_mea_eigen_convergence_first_eigen.freefem
+# see conv_order.m
+
+
+# 1st eigenvalue for P1
+8 -0.5025807753019748
+16 -0.5025124668146099
+32 -0.5024868248664364
+64 -0.5024795616039632
+128 -0.5024776839320485
+256 -0.5024772104881058
+
+# 1st eigenvalue for P2
+# TODO
+
+# first 10 eigenvalues for P1 elements res = 256
+  lambda[1]: +3.55713e-14+0i
+  lambda[2]: -0.502477+0i
+  lambda[3]: -1.00001+0i
+  lambda[4]: -1.02578+0i
+  lambda[5]: -1.50275+0i
+  lambda[6]: -1.61857+0i
+  lambda[7]: -2.00058+0i
+  lambda[8]: -2.02632+0i
+  lambda[9]: -2.34268+0i
+  lambda[10]: -2.50356+0i
+
+#**********************************************************
+
+#obtained changing only the size of the domain (r=10)
+8 -0.4999303065193089
+16 -0.4999999962631712
+32 -0.5000000000368647
+64 -0.5000000000384965
+128 -0.5000000000383955
+256 -0.5000000000383642
+
+#**********************************************************
+
