@@ -57,9 +57,57 @@ int main() {
     // cheating: compute some results to have an idea of there the maximum is
     Funcd f;
 
-    std::ofstream writeToFile("../test_bistable.out");
-    assert(writeToFile.is_open());
 
+
+    // for quadratic
+    std::ofstream writeToFile("../test_results/quadratic/spectral_gap_perturbation_quadratic.out", std::ofstream::out | std::ofstream::app);
+    assert(writeToFile.is_open());
+    /*Doub a = -1.;
+    while(a< -0.4) {
+        std::complex<double> val = f(a);
+        std::cout << a << " " << real(val) << " " << imag(val) << std::endl;
+        writeToFile << a << " " << real(val) << " " << imag(val) << std::endl;
+        a += 0.05;
+    }
+    a = -0.4;
+    while(a< -0.3) {
+        std::complex<double> val = f(a);
+        std::cout << a << " " << real(val) << " " << imag(val) << std::endl;
+        writeToFile << a << " " << real(val) << " " << imag(val) << std::endl;
+        a += 0.01;
+    }
+    a = -0.3;
+    while(a< 0.3) {
+        std::complex<double> val = f(a);
+        std::cout << a << " " << real(val) << " " << imag(val) << std::endl;
+        writeToFile << a << " " << real(val) << " " << imag(val) << std::endl;
+        a += 0.05;
+    }
+    a = 0.3;
+    while(a< 0.4) {
+        std::complex<double> val = f(a);
+        std::cout << a << " " << real(val) << " " << imag(val) << std::endl;
+        writeToFile << a << " " << real(val) << " " << imag(val) << std::endl;
+        a += 0.01;
+    }
+    a = 0.4;
+    while(a< 1.) {
+        std::complex<double> val = f(a);
+        std::cout << a << " " << real(val) << " " << imag(val) << std::endl;
+        writeToFile << a << " " << real(val) << " " << imag(val) << std::endl;
+        a += 0.05;
+    }*/
+    Doub a = 24.;
+    while(a< 50.) {
+        std::complex<double> val = f(a);
+        std::cout << a << " " << real(val) << " " << imag(val) << std::endl;
+        writeToFile << a << " " << real(val) << " " << imag(val) << std::endl;
+        a += 1.;
+    }
+
+
+    /*std::ofstream writeToFile("../test_results/3_wells/spectral_gap_perturbation_two_wells.out", std::ofstream::out | std::ofstream::app);
+    assert(writeToFile.is_open());
     Doub a = 0.;
     while(a< 0.2) {
         std::complex<double> val = f(a);
@@ -97,7 +145,7 @@ int main() {
         writeToFile << a << " " << real(val) << " " << imag(val) << std::endl;
         writeToFile.flush();
         a += 1.;
-    }
+    }*/
 
     writeToFile.close();
 

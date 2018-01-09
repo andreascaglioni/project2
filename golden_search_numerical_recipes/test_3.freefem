@@ -3,22 +3,19 @@
 //************************
 //ALWAYS KEEP THIS WHEN RUNNING FROM C++
 verbosity = 0;
-string astring = ARGV[5];
 //************************
-
-
-real a = atof(astring);
-real specGapR=0.;
-real specGapI=0.;
 
 for(int i=0;i<ARGV.n;++i)
   {
     cout << ARGV[i] << endl;
   }
-   
+
+real a = atof(ARGV[5]);
+real specGapR=0.;
+real specGapI=0.;   
 //mesh data
-real r =3.5;
-int[int] resVec = [100, 200, 300];
+real r =10.;
+int[int] resVec = [100, 250, 350];
 
 // while as global adaptivity
 real relError = 1e-1;
@@ -26,22 +23,41 @@ int nRefine = 0;
 while(abs(relError)>1e-4 && nRefine < resVec.n ) {
   int res = resVec[nRefine];
   nRefine=nRefine+1;
-  //problem data: potential V and perturbation b
 
+    //Mesh
+// elliptic mesh (quadratic)
+border Gamma(t=0,2*pi) { x = r * cos(t); y = r * sin(t); }
+  mesh Th = buildmesh(Gamma(res*4));
+// square mesh (2-wells)
+/*int n=res, m=res;
+real xlow=-r, xhigh=r;
+real ylow=-r, yhigh=r;
+mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);*/
+ // elliptic mesh (2-wella)
+  /*border Gamma(t=0,2*pi) { x =0.7* r * cos(t); y = r * sin(t); }
+    mesh Th = buildmesh(Gamma(res*4));*/
+//square mesh (3-wells)
+/*int n=res, m=res;
+real xlow=-r, xhigh=r;
+real ylow=0.5-r, yhigh=0.5+r;
+mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);*/
+
+ 
+  //problem data: potential V and perturbation b
   // INPUT: $V, \Nabla (V), \Delta (V)$
-  /* real s11=1, s12=0.;
+   real s11=1., s12=0.;
      real s21=0., s22=0.5; 
      func V = 0.5*(s11*x*x + (s12+s21)*x*y +s22*y*y);
      func dxV = +s11*x+0.5*(s12+s21)*y;
-     func dyV = +s22*y+0.5*(s12+s21)*x;*/
+     func dyV = +s22*y+0.5*(s12+s21)*x;
 
   //INPUT: bistable potential
-  /*func V = 0.25*(x^2-1.)^2 + 0.5*y^2;
+     /*  func V = 0.25*(x^2-1.)^2 + 0.5*y^2;
     func dxV = x^3 - x + 0.*y;
     func dyV = y + 0.*x ;
     func lapV = 3.*x^2 + 0.*y;*/
   // 3 holes potential
-  func V = 3*exp(-x^2-(y-1./3.)^2)-3*exp(-x^2-(y-5./3.)^2)
+  /*func V = 3*exp(-x^2-(y-1./3.)^2)-3*exp(-x^2-(y-5./3.)^2)
     -5*exp(-(x-1)^2-y^2)-5*exp(-(x+1)^2-y^2)
     +0.2*x^4+0.2*(y-1./3.)^4;
   func dxV = -6*x*exp(-x^2)*(exp(-(y-1./3.)^2 ) -exp(-(y-5./3.)^2))
@@ -50,7 +66,7 @@ while(abs(relError)>1e-4 && nRefine < resVec.n ) {
   func dyV= -6*exp(-x^2)*(exp(-(y-1./3.)^2)*(y-1./3.) - exp(-(y-5./3.)^2)*(y-5./3.))
     + 10*(exp(-(x-1)^2) + exp(-(x+1)^2))*y*exp(-y^2)
     + 4./5.*(y-1./3.)^3;
-  func lapV = 12* exp(-x^2 - (y - 1.66667)^2) - 12* exp(-x^2 - (y - 1./3.)^2) - 12* x^2* exp(-x^2 - (y - 1.66667)^2) + 12* x^2* exp(-x^2 - (y - 1./3.)^2) - 12* (y - 1.66667)^2* exp(-x^2 - (y - 1.66667)^2) + 12* (y - 1./3.)^2*exp(-x^2 - (y - 1./3.)^2) + 2.4* x^2 - 20* (x - 1)^2* exp(-(x - 1)^2 - y^2) + 20* exp(-(x - 1)^2 - y^2) + 20* exp(-(x + 1)^2 - y^2) - 20* (x + 1)^2* exp(-(x + 1)^2 - y^2) - 20* y^2* exp(-(x - 1)^2 - y^2) - 20* y^2* exp(-(x + 1)^2 - y^2) + 2.4* (y - 1./3.)^2;
+    func lapV = 12* exp(-x^2 - (y - 1.66667)^2) - 12* exp(-x^2 - (y - 1./3.)^2) - 12* x^2* exp(-x^2 - (y - 1.66667)^2) + 12* x^2* exp(-x^2 - (y - 1./3.)^2) - 12* (y - 1.66667)^2* exp(-x^2 - (y - 1.66667)^2) + 12* (y - 1./3.)^2*exp(-x^2 - (y - 1./3.)^2) + 2.4* x^2 - 20* (x - 1)^2* exp(-(x - 1)^2 - y^2) + 20* exp(-(x - 1)^2 - y^2) + 20* exp(-(x + 1)^2 - y^2) - 20* (x + 1)^2* exp(-(x + 1)^2 - y^2) - 20* y^2* exp(-(x - 1)^2 - y^2) - 20* y^2* exp(-(x + 1)^2 - y^2) + 2.4* (y - 1./3.)^2;*/
 
   // INPUT: \rho-div-free perturbation b
   func p1 = a * dyV;
@@ -67,27 +83,17 @@ while(abs(relError)>1e-4 && nRefine < resVec.n ) {
 
   // eigenproblem parameters
   real sigma = 0.;	//shift
-  int nev=10;		//number of eigenvalues to compute close to sigma
-
-  //Mesh generation
-  //square mesh with center in (0,0,5) for 3 holes potential
-  int n=res, m=res;
-  real xlow=-r,xhigh=r;
-  real ylow=0.5-r,yhigh=0.5+r;
-  mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);
-  // circular mesh
-  /*border Gamma(t=0,2*pi) { x = r *0.7* cos(t); y = r * sin(t); }
-    mesh Th = buildmesh(Gamma(4*res));*/
+  int nev=15;		//number of eigenvalues to compute close to sigma
 
   fespace Vh(Th,P1);
   Vh u1,u2;
 
   macro Kol(u,v) - int2d(Th)(dx(u)*(dx(v)*rho+v*dxrho)+dy(u)*(dy(v)*rho+v*dyrho))
     + int2d(Th)((b1*dx(u)+b2*dy(u))*v*rho)                            // MACRO for Kolmogorov bilinear form in L^2(\Omega, \rho)
-    macro SP(u,v) int2d(Th)(u*v*rho) // MACRO for scalar product in L^2(\Omega, \rho)
+  macro SP(u,v) int2d(Th)(u*v*rho) // MACRO for scalar product in L^2(\Omega, \rho)
 
-    varf op(u,v) = Kol(u,v) - SP(sigma*u,v);
-  //     	       + on(1,2,3,4,u=0) ; 	                                         //Dirichlet BC
+  varf op(u,v) = Kol(u,v) - SP(sigma*u,v);
+  //     + on(1,2,3,4,u=0) ; 	                                         //Dirichlet BC
   varf b([u],[v]) = int2d(Th)( u*v*rho );	  //no BC (!)
 
   matrix OP= op(Vh, Vh, solver=UMFPACK);
@@ -100,7 +106,6 @@ while(abs(relError)>1e-4 && nRefine < resVec.n ) {
   //resolution of dicrete eigenvalue problem
   int k=EigenValue(OP,B,nev=nev, sym=false,sigma=sigma,value=ev,ivalue=iev, vector=eV,
 		   tol=1e-10,maxit=0,ncv=0);
-
 
   //print results and relative error
   /*  
