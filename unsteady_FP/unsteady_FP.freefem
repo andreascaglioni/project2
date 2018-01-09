@@ -3,9 +3,9 @@
 real a = atof(ARGV[2]);
 
 //Domain
-real r =5;
+real r =4;
 //Mesh
-int res = 100;
+int res = 60;
 //square mesh
 int n=res, m=res;
 real xlow=-r, xhigh=r;
@@ -17,7 +17,7 @@ mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);
 
 // Time advancement parameters
 real dt = 0.02;
-real finalTime = 60;
+real finalTime = 30;
 int Nit = finalTime/dt;
 
 // INPUT: $V, \Nabla (V), \Delta (V)$
@@ -49,7 +49,12 @@ func divp = dxp1+dyp2;*/
 func V = 3*exp(-x^2-(y-1./3.)^2)-3*exp(-x^2-(y-5./3.)^2)-5*exp(-(x-1)^2-y^2)-5*exp(-(x+1)^2-y^2)+0.2*x^4+0.2*(y-1./3.)^4;
 func dxV = -6*x*exp(-x^2)*(exp(-(y-1./3.)^2 ) -exp(-(y-5./3.)^2))+ 10*(exp(-(x-1)^2)*(x-1) + exp(-(x+1)^2)*(x+1))*exp(-y^2)+ 4./5.*x^3;
 func dyV= -6*exp(-x^2)*(exp(-(y-1./3.)^2)*(y-1./3.) - exp(-(y-5./3.)^2)*(y-5./3.))+ 10*(exp(-(x-1)^2) + exp(-(x+1)^2))*y*exp(-y^2)+ 4./5.*(y-1./3.)^3;
-func lapV = 12* exp(-x^2 - (y - 1.66667)^2) - 12* exp(-x^2 - (y - 1./3.)^2) - 12* x^2* exp(-x^2 - (y - 1.66667)^2) + 12* x^2* exp(-x^2 - (y - 1./3.)^2) - 12* (y - 1.66667)^2* exp(-x^2 - (y - 1.66667)^2) + 12* (y - 1./3.)^2*exp(-x^2 - (y - 1./3.)^2) + 2.4* x^2 - 20* (x - 1)^2* exp(-(x - 1)^2 - y^2) + 20* exp(-(x - 1)^2 - y^2) + 20* exp(-(x + 1)^2 - y^2) - 20* (x + 1)^2* exp(-(x + 1)^2 - y^2) - 20* y^2* exp(-(x - 1)^2 - y^2) - 20* y^2* exp(-(x + 1)^2 - y^2) + 2.4* (y - 1./3.)^2;
+ func lapV = -6*exp(-x^2)*(-2*x^2+1)*(exp(-(y-1./3.)^2)-exp(-(y-5./3.)^2))
+			+10*(exp(-(x-1)^2)*(-2*(x-1)^2+1)+exp(-(x+1)^2)*(-2*(x+1)^2+1))*exp(-y^2)
+			+12./5.*x^2
+	   -6*exp(-x^2)*(exp(-(y-1./3.)^2)*(-2*(y-1./3.)^2+1)-exp(-(y-5./3.)^2)*(-2*(y-5./3.)^2+1))
+			+10*(exp(-(x-1)^2)+exp(-(x+1)^2))*exp(-y^2)*(-2*y^2+1)
+			+ 12./5.*(y-1./3.)^2;
 // pertirbation 3-well
 func p1 =  a * dyV;
 func p2 = -a * dxV;
@@ -74,7 +79,7 @@ pold = (x-r)*(x+r)*((y-0.5)-r)*((y-0.5)+r);     // for square mesh
 //pold = r^2-(x^2+y^2);                 // for circular mesh
 real mass = int2d(Th)(pold);
 pold = pold/mass;
-plot(pold, fill=1, value=1, dim=3, wait=1);
+//plot(pold, fill=1, value=1, dim=3, wait=1);
 
 varf op(p, q) =  int2d(Th)(p*q/dt)				 // time dependence
        	       - int2d(Th)(pold*q/dt)
@@ -95,7 +100,7 @@ for (it=0; it<Nit; it++) {
     ph = ph/mass;
     pold = ph;
     
-    plot( ph, fill=1, value=1, dim=3, wait=0);
+    //plot( ph, fill=1, value=1, dim=3, wait=0);
 }
 
 // Print timestep and error at every timestep
