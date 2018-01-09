@@ -12,7 +12,7 @@ clear;
 % aaExt = -1.:0.05:0.95;
 
 %% import data
-id_unpertrubed = fopen('../test_bistable.out');
+id_unpertrubed = fopen('quadratic/spectral_gap_perturbation_quadratic.out');
 A = fscanf(id_unpertrubed, '%f %f %f',[3 inf]); A = A';
 aa = A(:,1);
 ss = A(:,2:3);
