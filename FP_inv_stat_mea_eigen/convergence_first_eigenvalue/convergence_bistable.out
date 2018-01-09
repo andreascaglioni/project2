@@ -1,0 +1,37 @@
+# convergence of first eigenvalue of FP operator for increasing mesh resolution (8 -> 256)
+# generated from FP_inv_stat_mea_eigen_convergence_first_eigenvalue.freefem
+# see conv_order_first_eigenvalue_FP.m
+
+
+
+# 1st eigenvalue for P1 (r=4.5)
+64 -0.9305772839236884
+128 -0.8278874149376021
+256 -0.8012101327772743
+512 -0.7944751493558576
+1024 -0.7927872369830383
+
+# 1st eigenvalue for P2 (r=4.5)
+8 -0.5875582585933522
+16 -0.938343745558338
+32 -0.8101665388520628
+64 -0.7935297085971842
+128 -0.8771899973374889
+256 -0.7922295871242355
+
+# first 10 eigenvalues for P1 elements res = 256
+  lambda[1]: -0.00306346+0i
+  lambda[2]: -0.526685+0i
+  lambda[3]: -1.00414+0i
+  lambda[4]: -1.11981+0i
+  lambda[5]: -1.52802+0i
+  lambda[6]: -1.8443+0i
+  lambda[7]: -2.00811+0i
+  lambda[8]: -2.12145+0i
+  lambda[9]: -2.53226+0i
+  lambda[10]: -2.74238+0i
+
+#**********************************************************
+
+
+
