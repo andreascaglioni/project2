@@ -1,39 +1,46 @@
+// Description:solves the timedependent Fokker-Plank equation
 //verbosity = 1;
-
+// Input: magnitude of the perturbation
 real a = atof(ARGV[2]);
 
 //Domain
-real r =4;
+real r =4;  // radius of the domain
 //Mesh
-int res = 60;
-//square mesh
-int n=res, m=res;
+int res = 60;   // resolution of the mesh (number of vertices on the boundary)
+
+//Mesh (uncomment the desired one)
+// elliptic mesh (for quadratic potential)
+border Gamma(t=0,2*pi) { x =sqrt(0.5)* r * cos(t); y = r * sin(t); }
+mesh Th = buildmesh(Gamma(res*4));
+plot(Th, wait=1, ps="mesh_quadratic.eps");
+// elliptic mesh (for 2-wells potential)
+/*border Gamma(t=0,2*pi) { x =0.7* r * cos(t); y = r * sin(t); }
+  mesh Th = buildmesh(Gamma(res*4));*/
+//square mesh (for 3-wells potential)
+/*int n=res, m=res;
 real xlow=-r, xhigh=r;
 real ylow=0.5-r, yhigh=0.5+r;
-mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);
-//alternative: circular mesh
-/*border Gamma(t=0,2*pi) { x = 0.7*r*cos(t); y = r*sin(t); }
-  mesh Th = buildmesh(Gamma(4*res));*/
+mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);*/
 
 // Time advancement parameters
 real dt = 0.02;
 real finalTime = 30;
 int Nit = finalTime/dt;
 
-// INPUT: $V, \Nabla (V), \Delta (V)$
+// Potential V, \Nabla V, \Delta V$
 //quadratic potential
-/* real s11=1., s12=0.;
+ real s11=1., s12=0.;
  real s21=0., s22=0.5; 
  func V = 0.5*(s11*x*x + (s12+s21)*x*y +s22*y*y);
  func dxV = s11*x+0.5*(s12+s21)*y;
  func dyV = s22*y+0.5*(s12+s21)*x;
- func lapV = s11 + s22;*/
-// perturbation
-/*func p1 =  a * dyV;
+ func lapV = s11 + s22;
+// perturbation quadratic
+func p1 =  a * dyV;
 func p2 = -a * dxV;
 func dxp1 =  a * 0.5 * (s12+s21);
 func dyp2 = -a * 0.5 * (s12+s21);
-func divp = dxp1+dyp2;*/
+func divp = dxp1+dyp2;
 //bistable
 /*func V = 0.25*(x^2-1.)^2+0.5*y^2;
 func dxV = x^3-x + 0.*y;
@@ -46,37 +53,28 @@ func dxp1 = 0.;
 func dyp2 = 0.;
 func divp = dxp1+dyp2;*/
 // 3-well
-func V = 3*exp(-x^2-(y-1./3.)^2)-3*exp(-x^2-(y-5./3.)^2)-5*exp(-(x-1)^2-y^2)-5*exp(-(x+1)^2-y^2)+0.2*x^4+0.2*(y-1./3.)^4;
+/*func V = 3*exp(-x^2-(y-1./3.)^2)-3*exp(-x^2-(y-5./3.)^2)-5*exp(-(x-1)^2-y^2)-5*exp(-(x+1)^2-y^2)+0.2*x^4+0.2*(y-1./3.)^4;
 func dxV = -6*x*exp(-x^2)*(exp(-(y-1./3.)^2 ) -exp(-(y-5./3.)^2))+ 10*(exp(-(x-1)^2)*(x-1) + exp(-(x+1)^2)*(x+1))*exp(-y^2)+ 4./5.*x^3;
 func dyV= -6*exp(-x^2)*(exp(-(y-1./3.)^2)*(y-1./3.) - exp(-(y-5./3.)^2)*(y-5./3.))+ 10*(exp(-(x-1)^2) + exp(-(x+1)^2))*y*exp(-y^2)+ 4./5.*(y-1./3.)^3;
- func lapV = -6*exp(-x^2)*(-2*x^2+1)*(exp(-(y-1./3.)^2)-exp(-(y-5./3.)^2))
-			+10*(exp(-(x-1)^2)*(-2*(x-1)^2+1)+exp(-(x+1)^2)*(-2*(x+1)^2+1))*exp(-y^2)
-			+12./5.*x^2
-	   -6*exp(-x^2)*(exp(-(y-1./3.)^2)*(-2*(y-1./3.)^2+1)-exp(-(y-5./3.)^2)*(-2*(y-5./3.)^2+1))
-			+10*(exp(-(x-1)^2)+exp(-(x+1)^2))*exp(-y^2)*(-2*y^2+1)
-			+ 12./5.*(y-1./3.)^2;
+ func lapV = -6*exp(-x^2)*(-2*x^2+1)*(exp(-(y-1./3.)^2)-exp(-(y-5./3.)^2))+10*(exp(-(x-1)^2)*(-2*(x-1)^2+1)+exp(-(x+1)^2)*(-2*(x+1)^2+1))*exp(-y^2)+12./5.*x^2-6*exp(-x^2)*(exp(-(y-1./3.)^2)*(-2*(y-1./3.)^2+1)-exp(-(y-5./3.)^2)*(-2*(y-5./3.)^2+1))+10*(exp(-(x-1)^2)+exp(-(x+1)^2))*exp(-y^2)*(-2*y^2+1)+ 12./5.*(y-1./3.)^2;*/
 // pertirbation 3-well
-func p1 =  a * dyV;
+/*func p1 =  a * dyV;
 func p2 = -a * dxV;
 func dxp1=a* (-6*x*exp(-x^2)*(exp(-(y-1./3.)^2)*(-2*(y-1./3.)) -exp(-(y-5./3.)^2)*(-2*(y-5./3.)))
 	      + 10*(exp(-(x-1)^2)*(x-1) + exp(-(x+1)^2)*(x+1))*exp(-y^2)*(-2*y));
 func dyp2 = -dxp1;
-func divp = dxp1+dyp2;   // todo: eliminate this, the perturbation is divergence-free
-// drift term (do not modify)
+func divp = dxp1+dyp2;*/
+// drift term 
 func b1 = dxV-p1;
 func b2 = dyV-p2;
 func divb = lapV - divp;
-
-// inverse of stationary measure (do not modify)
+// inverse of stationary measure
 func rho = exp(V(x,y));
-
 //Finite elements space and variables
 fespace Vh1(Th,P1);   
 Vh1 ph, qh, pold;
-
-//Initia condition
-pold = (x-r)*(x+r)*((y-0.5)-r)*((y-0.5)+r);     // for square mesh
-//pold = r^2-(x^2+y^2);                 // for circular mesh
+//Initial condition
+pold = (x-r)*(x+r)*((y-0.5)-r)*((y-0.5)+r);     // for 3-wells mesh
 real mass = int2d(Th)(pold);
 pold = pold/mass;
 //plot(pold, fill=1, value=1, dim=3, wait=1);
@@ -90,7 +88,7 @@ varf op(p, q) =  int2d(Th)(p*q/dt)				 // time dependence
 
 problem FP(ph, qh) = op;
 
-// solve the proble, compute error, print and plot
+// solve the problem, compute error, print and plot
 Vh1[int] sol(Nit);
 int it;
 for (it=0; it<Nit; it++) {
@@ -99,11 +97,10 @@ for (it=0; it<Nit; it++) {
     mass = int2d(Th)(ph);
     ph = ph/mass;
     pold = ph;
-    
     //plot( ph, fill=1, value=1, dim=3, wait=0);
 }
 
-// Print timestep and error at every timestep
+// Print timestep and error at every timestep to file
 real[int] L2err(Nit);
 string filename = "conv_perturbation_" + a + ".out";
 ofstream write(filename);

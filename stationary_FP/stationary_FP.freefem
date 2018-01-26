@@ -1,61 +1,57 @@
+// description: solves the stationary Fokker-Plank problem
 //verbosity = 10;
+// print the inputs
 for(int i=0;i<ARGV.n;++i)
    {
      cout << ARGV[i] << endl;
    }
-
+// assing mesh resulution ( number of vertices on boundary) and mesh radius (size of the domain)
 int res = atoi(ARGV[2]);
 real r =atof(ARGV[3]);
 
-//Mesh
-// elliptic mesh (quadratic)
-/*border Gamma(t=0,2*pi) { x =sqrt(0.5)* r * cos(t); y = r * sin(t); }
-mesh Th = buildmesh(Gamma(res*2*3.14*0.75));*/
-// square mesh (2-wells)
-/*int n=res, m=res;
-real xlow=-r, xhigh=r;
-real ylow=-r, yhigh=r;
-mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);*/
-// elliptic mesh (2-wells)
-border Gamma(t=0,2*pi) { x =0.7* r * cos(t); y = r * sin(t); }
+//Mesh (uncomment the desired one)
+// elliptic mesh (for quadratic potential)
+border Gamma(t=0,2*pi) { x =sqrt(0.5)* r * cos(t); y = r * sin(t); }
 mesh Th = buildmesh(Gamma(res*4));
-//square mesh (3-wells)
+plot(Th, wait=1, ps="mesh_quadratic.eps");
+// elliptic mesh (for 2-wells potential)
+/*border Gamma(t=0,2*pi) { x =0.7* r * cos(t); y = r * sin(t); }
+  mesh Th = buildmesh(Gamma(res*4));*/
+//square mesh (for 3-wells potential)
 /*int n=res, m=res;
 real xlow=-r, xhigh=r;
 real ylow=0.5-r, yhigh=0.5+r;
 mesh Th=square(n,m,[xlow+(xhigh-xlow)*x,ylow+(yhigh-ylow)*y]);*/
 
-
-// INPUT: $V, \Nabla (V), \Delta (V)$
+// Potential V, \Nabla V, \Delta V$
 // quadratic
-/* real s11=1, s12=0.;
+ real s11=1, s12=0.;
  real s21=0., s22=0.5;
  func V = 0.5*(s11*x*x + (s12+s21)*x*y +s22*y*y);
  func dxV = +s11*x+0.5*(s12+s21)*y;
  func dyV = +s22*y+0.5*(s12+s21)*x;
- func lapV = s11 + s22;*/
-// bistable
- func V = 0.25*(x*x-1.)*(x*x-1.)+0.5*y*y;
+ func lapV = s11 + s22;
+// 2-wells
+/* func V = 0.25*(x*x-1.)*(x*x-1.)+0.5*y*y;
  func dxV = x*(x*x-1.) + 0.*y;
  func dyV = y + 0.*x + 0.*y;
- func lapV = 3.*x*x + 0.*y;
-
-// 3 holes potential
+ func lapV = 3.*x*x + 0.*y;*/
+// 3 wells
 /*func V = 3*exp(-x^2-(y-1./3.)^2)-3*exp(-x^2-(y-5./3.)^2)
-			-5*exp(-(x-1)^2-y^2)-5*exp(-(x+1)^2-y^2)
-			+0.2*x^4+0.2*(y-1./3.)^4;
+	   -5*exp(-(x-1)^2-y^2)-5*exp(-(x+1)^2-y^2)
+	   +0.2*x^4+0.2*(y-1./3.)^4;
 func dxV = -6*x*exp(-x^2)*(exp(-(y-1./3.)^2 ) -exp(-(y-5./3.)^2))
-			+ 10*(exp(-(x-1)^2)*(x-1) + exp(-(x+1)^2)*(x+1))*exp(-y^2)
-			+ 4./5.*x^3;
+	   + 10*(exp(-(x-1)^2)*(x-1) + exp(-(x+1)^2)*(x+1))*exp(-y^2)
+	   + 4./5.*x^3;
 func dyV= -6*exp(-x^2)*(exp(-(y-1./3.)^2)*(y-1./3.) - exp(-(y-5./3.)^2)*(y-5./3.))
-			+ 10*(exp(-(x-1)^2) + exp(-(x+1)^2))*y*exp(-y^2)
-			+ 4./5.*(y-1./3.)^3;
+	  + 10*(exp(-(x-1)^2) + exp(-(x+1)^2))*y*exp(-y^2)
+	  + 4./5.*(y-1./3.)^3;
 func lapV = -6*exp(-x^2)*(-2*x^2+1)*(exp(-(y-1./3.)^2)-exp(-(y-5./3.)^2))
-			+10*(exp(-(x-1)^2)*(-2*(x-1)^2+1)+exp(-(x+1)^2)*(-2*(x+1)^2+1))*exp(-y^2)
-			+12./5.*x^2
-	   -6*exp(-x^2)*(exp(-(y-1./3.)^2)*(-2*(y-1./3.)^2+1)-exp(-(y-5./3.)^2)*(-2*(y-5./3.)^2+1))
-			+10*(exp(-(x-1)^2)+exp(-(x+1)^2))*exp(-y^2)*(-2*y^2+1)
-			+ 12./5.*(y-1./3.)^2;*/
+	    +10*(exp(-(x-1)^2)*(-2*(x-1)^2+1)+exp(-(x+1)^2)*(-2*(x+1)^2+1))*exp(-y^2)
+	    +12./5.*x^2
+	    -6*exp(-x^2)*(exp(-(y-1./3.)^2)*(-2*(y-1./3.)^2+1)-exp(-(y-5./3.)^2)*(-2*(y-5./3.)^2+1))
+	    +10*(exp(-(x-1)^2)+exp(-(x+1)^2))*exp(-y^2)*(-2*y^2+1)
+	    + 12./5.*(y-1./3.)^2;*/
 //Variationa form
 varf a(p, q) = - int2d(Th)(dx(p)*dx(q)+dy(p)*dy(q))		 //diffusion
      	       + int2d(Th)((dxV*dx(p)+dyV*dy(p))*q)   		 //advection
@@ -63,28 +59,26 @@ varf a(p, q) = - int2d(Th)(dx(p)*dx(q)+dy(p)*dy(q))		 //diffusion
 //	       - int1d(Th,1,2,3,4)(p*q*(dxV*N.x+dyV*N.y));	 //Robin BC
 	       + on(1,2,3,4, p=0);			   	 //Dirichlet BD
 
-//non-constrained problem
+//************* Non-constrained problem (gives 0 solution)
 /* fespace Vh1(Th,P1);   
 Vh1 uh1, vh1;
 problem FP(uh1,vh1) = a;
 FP;
 plot(uh1, fill=1, value=1, dim=3);*/
 
-// integral constraint on soution
+//************* Integral-constrained problem
 //varf for integral constraint
 varf varG(p,q) = int2d(Th)(q);
-//varf varG2(p,q) = int2d(Th)(q*0.1);
 
 //P1 elements:
 fespace Xh1(Th,P1);
 Xh1 ph1;
-//Xh1 Vint=exp(-V); plot(VInt, dim=2, fill=1, wait=1);
 
-//Assembling matrix
+//Assembling stiffness matrix
 real[int] g = varG(0,Xh1);
 matrix A = a(Xh1, Xh1);
-matrix M =[[A, g],[g', 0]];
-//'
+matrix M =[[A, g],[g', 0]]; //'
+
 //Assembling rhs
 real[int] rhs(Xh1.ndof+1);
 rhs = 0.;
@@ -97,10 +91,10 @@ real[int] ph = sol(0:Xh1.ndof-1);
 
 //Plotting
 ph1[] = ph;
-		   string cmm = "radius: "+ r + "; resolution: " + res;
-		   plot(Th, ph1,fill=1,wait=1,value=1, dim=2, boundary=1, cmm=cmm , ps="plot_solution_stationary_FP_3_wells.eps");
+string cmm = "radius: "+ r + "; resolution: " + res;
+plot(Th, ph1,fill=1,wait=1,value=1, dim=2, boundary=1, cmm=cmm,/* ps="plot_solution_stationary_FP_3_wells.eps"*/);
 
-//error
+//A-posteriori error
  cout << "A posteriori error = "
       <<  - int2d(Th)(dx(ph1)*dx(ph1)+dy(ph1)*dy(ph1))
      	  + int2d(Th)((dxV*dx(ph1)+dyV*dy(ph1))*ph1)
@@ -109,5 +103,5 @@ ph1[] = ph;
 
 //Print Lagrange mutiplier
 cout << "Lagrange multiplier: " << sol(Xh1.ndof) << endl;
-		   /*ofstream write("lagrange_multipliers.out",append); write.precision(16);
-		     write << r << " " << res << " " <<  sol(Xh1.ndof) <<endl;*/
+/*ofstream write("lagrange_multipliers.out",append); write.precision(16);
+write << r << " " << res << " " <<  sol(Xh1.ndof) <<endl;*/
